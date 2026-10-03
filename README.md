@@ -19,7 +19,10 @@ public/docs.js      belgeler (yükleme: yerelde doğrudan, bulutta Supabase Stor
 public/chat.js      sohbet
 public/report.js    kullanım raporu ve CSV
 public/admin.js     yönetim (yalnızca yönetici)
-public/fx.js        görsel efektler (ana sayfa heykeli, imleç); "hareketi azalt" açıksa kapanır
+public/fx.js        görsel efektler (yedek 2B heykel, imleç, paralaks); "hareketi azalt" açıksa kapanır
+public/cinema.js    ana sayfadaki sinematik 3B sahne (Three.js / WebGL); adres?sahne=16 ile istenen saniyeden başlar
+public/account.js   Hesabım sekmesi: ad, parola, hesap silme
+public/vendor/      Three.js 0.186.1'in yerel alt kümesi (MIT); nasıl üretildiği vendor/README.md'de
 public/style.css    tema (koyu/açık), düzen (masaüstü/mobil)
 tests/              arayüz testleri (yalnızca Python standart kütüphanesi)
 vercel.json         Vercel ayarı: site public/ klasöründen sunulur + güvenlik başlıkları
