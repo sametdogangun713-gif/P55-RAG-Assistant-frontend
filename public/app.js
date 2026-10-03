@@ -49,6 +49,8 @@ const P55 = {
 
   async request(path, options) {
     const opts = Object.assign({}, options);
+    const asBlob = !!opts.blob;                       // dosya indirme: baytlar oldugu gibi (CSV'deki BOM korunur)
+    delete opts.blob;
     opts.headers = Object.assign({}, opts.headers);
     if (P55.token) opts.headers["Authorization"] = "Bearer " + P55.token;
     if (opts.json !== undefined) {
@@ -66,6 +68,7 @@ const P55 = {
       P55.logout("Oturum süresi doldu, tekrar giriş yapın");
       throw new Error("Oturum süresi doldu");
     }
+    if (res.ok && asBlob) return res.blob();         // res.text() UTF-8 BOM'unu siler -> Excel Turkce karakteri bozar
     const type = res.headers.get("content-type") || "";
     const data = type.includes("application/json") ? await res.json() : await res.text();
     if (!res.ok) {

@@ -72,14 +72,22 @@
     catch (e) { P55.show(e.message, true); }
   }
 
+  // CSV, Authorization basligi gerektigi icin fetch ile alinir ve tarayicida dosyaya cevrilir.
+  // Dosya METIN olarak degil blob olarak alinir: res.text() bastaki UTF-8 BOM'unu siliyordu ve Excel BOM'u
+  // goremeyince Turkce karakterleri bozuk gosteriyordu ("bölüm" -> "bÃ¶lÃ¼m"). Ayrac (;) sunucuda ayarlanir.
   async function downloadCsv() {
+    const btn = document.getElementById("report-csv");
+    P55.setBusy(btn, true);
     try {
-      const text = await P55.request("/reports/usage.csv?" + params());     // Authorization basligi gerektigi icin fetch ile
-      const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
-      const a = el("a", { href: url, download: "kullanim-raporu.csv" });
+      const blob = await P55.request("/reports/usage.csv?" + params(), { blob: true });
+      const url = URL.createObjectURL(blob);
+      const today = new Date().toISOString().slice(0, 10);
+      const a = el("a", { href: url, download: "kullanim-raporu-" + today + ".csv" });
       document.body.append(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);   // hemen iptal edilirse bazi tarayicilarda indirme yarida kalir
+      P55.show("Rapor indirildi (Excel ile açılabilir)");
     } catch (e) { P55.show(e.message, true); }
+    P55.setBusy(btn, false);
   }
 
   document.getElementById("report-form").addEventListener("submit", (ev) => { ev.preventDefault(); load(); });

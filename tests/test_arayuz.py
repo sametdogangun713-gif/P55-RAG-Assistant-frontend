@@ -182,6 +182,13 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn("++stalled >= 3", docs)
         self.assertIn('"Devam et"', docs)
 
+    def test_csv_bom_korunarak_indirilir(self):
+        """Gercek hata: CSV res.text() ile okununca BOM siliniyordu, Excel Turkce karakterleri bozuyordu."""
+        report = (STATIC / "report.js").read_text(encoding="utf-8")
+        self.assertIn('{ blob: true }', report)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn("if (res.ok && asBlob) return res.blob();", app)
+
     def test_genel_yanit_etiketlenir(self):
         """Belge disi (general) yanit kaynaksiz gelir ve "belgelerinden degil" notuyla, farkli gorunur."""
         chat = (STATIC / "chat.js").read_text(encoding="utf-8")
