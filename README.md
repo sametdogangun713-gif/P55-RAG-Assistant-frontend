@@ -17,7 +17,7 @@ public/config.js    backend (API) adresi  <- buluta çıkarken değiştirilen te
 public/app.js       çekirdek: API istemcisi, oturum, sekmeler, tema, bildirimler
 public/docs.js      belgeler (yükleme: yerelde doğrudan, bulutta Supabase Storage'a) ve arama
 public/chat.js      sohbet
-public/report.js    kullanım raporu ve CSV
+public/report.js    kullanım raporu ve PDF indirme
 public/admin.js     yönetim (yalnızca yönetici)
 public/account.js   Hesabım sekmesi: ad, parola, hesap silme
 public/style.css    keskin siyah-beyaz tema: açık/koyu (seçim yoksa işletim sistemi ayarı), düzen (masaüstü/mobil); süsleme animasyonu yok

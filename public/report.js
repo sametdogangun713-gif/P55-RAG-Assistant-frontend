@@ -1,5 +1,5 @@
 "use strict";
-/* Rapor sekmesi: ozet kartlari, kalite dagilimi, en cok kullanilan kaynaklar, gunluk soru sayisi, CSV. */
+/* Rapor sekmesi: ozet kartlari, kalite dagilimi, en cok kullanilan kaynaklar, gunluk soru sayisi, PDF. */
 (function () {
   const { el } = P55;
   const STATUS_LABEL = {
@@ -72,25 +72,25 @@
     catch (e) { P55.show(e.message, true); }
   }
 
-  // CSV, Authorization basligi gerektigi icin fetch ile alinir ve tarayicida dosyaya cevrilir.
-  // Dosya METIN olarak degil blob olarak alinir: res.text() bastaki UTF-8 BOM'unu siliyordu ve Excel BOM'u
-  // goremeyince Turkce karakterleri bozuk gosteriyordu ("bölüm" -> "bÃ¶lÃ¼m"). Ayrac (;) sunucuda ayarlanir.
-  async function downloadCsv() {
-    const btn = document.getElementById("report-csv");
+  // Rapor PDF olarak indirilir (sunucuda reportlab ile uretilir). CSV, Excel'in bolgesel ayarina gore (ayrac,
+  // karakter kodlamasi) farkli aciliyordu; PDF her yerde ayni gorunur. Authorization basligi gerektigi icin
+  // fetch ile alinir; dosya blob olarak (baytlari degismeden) kaydedilir.
+  async function downloadPdf() {
+    const btn = document.getElementById("report-pdf");
     P55.setBusy(btn, true);
     try {
-      const blob = await P55.request("/reports/usage.csv?" + params(), { blob: true });
+      const blob = await P55.request("/reports/usage.pdf?" + params(), { blob: true });
       const url = URL.createObjectURL(blob);
       const today = new Date().toISOString().slice(0, 10);
-      const a = el("a", { href: url, download: "kullanim-raporu-" + today + ".csv" });
+      const a = el("a", { href: url, download: "kullanim-raporu-" + today + ".pdf" });
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);   // hemen iptal edilirse bazi tarayicilarda indirme yarida kalir
-      P55.show("Rapor indirildi (Excel ile açılabilir)");
+      P55.show("Rapor PDF olarak indirildi");
     } catch (e) { P55.show(e.message, true); }
     P55.setBusy(btn, false);
   }
 
   document.getElementById("report-form").addEventListener("submit", (ev) => { ev.preventDefault(); load(); });
-  document.getElementById("report-csv").addEventListener("click", downloadCsv);
+  document.getElementById("report-pdf").addEventListener("click", downloadPdf);
   P55.tabs.report = { onShow: load };
 })();

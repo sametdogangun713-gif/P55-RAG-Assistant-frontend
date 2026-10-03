@@ -182,10 +182,14 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn("++stalled >= 3", docs)
         self.assertIn('"Devam et"', docs)
 
-    def test_csv_bom_korunarak_indirilir(self):
-        """Gercek hata: CSV res.text() ile okununca BOM siliniyordu, Excel Turkce karakterleri bozuyordu."""
+    def test_rapor_pdf_olarak_indirilir(self):
+        """Rapor PDF indirilir (CSV Excel'de bolgesel ayara gore bozuk aciliyordu). Dosya blob olarak alinir:
+        res.text() baytlari degistirebilir (ornegin BOM'u siler)."""
+        self.assertIn('id="report-pdf"', self.html)
+        self.assertNotIn("CSV indir", self.html)
         report = (STATIC / "report.js").read_text(encoding="utf-8")
-        self.assertIn('{ blob: true }', report)
+        self.assertIn('"/reports/usage.pdf?" + params(), { blob: true }', report)
+        self.assertIn('".pdf"', report)
         app = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn("if (res.ok && asBlob) return res.blob();", app)
 
