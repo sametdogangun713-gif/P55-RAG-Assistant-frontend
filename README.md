@@ -49,5 +49,5 @@ Backend, `http://localhost:5500`'e izin verecek şekilde ayarlıdır (`ALLOWED_O
 ```bat
 python -m unittest discover -s tests -v
 ```
-ya da `testleri_calistir.bat`. 21 test: statik dosya bağlantıları, XSS taraması, gizli anahtar taraması, tema, erişilebilirlik
+ya da `testleri_calistir.bat`. 23 test: statik dosya bağlantıları, XSS taraması, gizli anahtar taraması, tema, erişilebilirlik
 (ARIA, "hareketi azalt"), şifremi unuttum, yükleme düğmesi ve ilerleme, bulut yükleme akışı.

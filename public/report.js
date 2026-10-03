@@ -4,7 +4,7 @@
   const { el } = P55;
   const STATUS_LABEL = {
     answered: "Kaynaklı yanıt", no_context: "İlgili bölüm bulunamadı", no_info: "Yeterli bilgi yok",
-    unverified: "Doğrulanamadı", unknown: "Bilinmiyor",
+    unverified: "Doğrulanamadı", general: "Genel yanıt (belge dışı)", unknown: "Bilinmiyor",
   };
   const pct = (v) => (v === null || v === undefined ? "—" : (v * 100).toFixed(1) + "%");
   const num = (v) => (v === null || v === undefined ? "—" : String(v));

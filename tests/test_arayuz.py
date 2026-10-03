@@ -172,6 +172,25 @@ class ArayuzTests(unittest.TestCase):
         """Gercek hata: button { display: inline-flex } hidden'i eziyordu, giristen sonra "Giris yap" gorunuyordu."""
         self.assertIn("[hidden] { display: none !important; }", self.css)
 
+    def test_buyuk_belge_parca_parca_indekslenir(self):
+        """Sunucu bir istekte sure butcesi kadar indeksler; arayuz belge 'chunked' oldukca index-next'i tekrar
+        cagirir, gercek yuzdeyi gosterir ve ilerleme durursa sonsuz donguye girmez."""
+        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        self.assertIn('while (d.status === "chunked")', docs)
+        self.assertIn('"/index-next", { method: "POST" }', docs)
+        self.assertIn("d.indexed_chunks / d.total_chunks", docs)
+        self.assertIn("++stalled >= 3", docs)
+        self.assertIn('"Devam et"', docs)
+
+    def test_genel_yanit_etiketlenir(self):
+        """Belge disi (general) yanit kaynaksiz gelir ve "belgelerinden degil" notuyla, farkli gorunur."""
+        chat = (STATIC / "chat.js").read_text(encoding="utf-8")
+        self.assertIn('m.status === "general"', chat)
+        self.assertIn("belgelerinden değil", chat)
+        self.assertIn(".bubble.general", self.css)
+        report = (STATIC / "report.js").read_text(encoding="utf-8")
+        self.assertIn('general: "Genel yanıt (belge dışı)"', report)
+
     def test_belge_yeniden_indekslenebilir(self):
         """Embedding modeli degisince eski belgeler aranamaz; her hazir belgede "Yeniden indeksle" olmali."""
         docs = (STATIC / "docs.js").read_text(encoding="utf-8")

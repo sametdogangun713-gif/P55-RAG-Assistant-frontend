@@ -7,6 +7,7 @@
     no_context: "Belgelerinde bu soruyla ilgili bir bölüm bulunamadı.",
     no_info: "Belgelerinde yeterli bilgi yok.",
     unverified: "Bu yanıt kaynaklarla doğrulanamadı; dikkatli ol.",
+    general: "Bu yanıt belgelerinden değil, modelin genel bilgisidir. Önemli konularda doğrula.",
   };
 
   function sourcesBlock(sources) {
@@ -19,9 +20,10 @@
   }
 
   function bubble(m) {
-    const warn = m.role === "assistant" && m.status && m.status !== "answered";
-    const b = el("div", { class: "bubble " + m.role + (warn ? " warn" : "") }, m.content);
-    if (warn && NOTES[m.status]) b.append(el("div", { class: "note" }, NOTES[m.status]));
+    const general = m.role === "assistant" && m.status === "general";     // belge disi genel sohbet
+    const warn = m.role === "assistant" && m.status && m.status !== "answered" && !general;
+    const b = el("div", { class: "bubble " + m.role + (warn ? " warn" : "") + (general ? " general" : "") }, m.content);
+    if ((warn || general) && NOTES[m.status]) b.append(el("div", { class: "note" }, NOTES[m.status]));
     if (m.sources && m.sources.length) b.append(sourcesBlock(m.sources));
     return b;
   }
@@ -37,7 +39,7 @@
     svg.append(path);
     return el("div", { class: "chat-empty" }, el("div", {}, svg,
       el("strong", {}, "Belgelerine bir soru sor"),
-      el("span", {}, "Yanıtlar yüklediğin belgelerden, [1] [2] gibi kaynak numaralarıyla gelir.")));
+      el("span", {}, "Yanıtlar yüklediğin belgelerden, [1] [2] gibi kaynak numaralarıyla gelir. Belgede olmayan sorulara genel bilgiyle, etiketli yanıt verilir.")));
   }
 
   function resetThread() { document.getElementById("chat-thread").replaceChildren(emptyState()); }
