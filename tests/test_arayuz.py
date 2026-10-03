@@ -1,4 +1,4 @@
-"""Arayuz testleri: guvenlik (XSS), tema, animasyon, erisilebilirlik ve backend ile baglanti.
+"""Arayuz testleri: guvenlik (XSS), tema, erisilebilirlik ve backend ile baglanti.
 
 Yalnizca Python standart kutuphanesi gerekir (kurulum yok):  python -m unittest discover tests
 """
@@ -15,22 +15,37 @@ class ArayuzTests(unittest.TestCase):
         self.css = (STATIC / "style.css").read_text(encoding="utf-8")
 
     def test_animasyonlar_kapatilabilir(self):
-        """Hareket hassasiyeti olan kullanicilar (isletim sistemi ayari) icin animasyonlar kapanmali."""
+        """Hareket hassasiyeti olan kullanicilar (isletim sistemi ayari) icin islevsel gostergeler de durmali."""
         self.assertIn("prefers-reduced-motion: reduce", self.css)
 
     def test_koyu_ve_acik_tema(self):
-        """Varsayilan tema koyu (modern siyah); acik tema dugmeyle secilir ve secim hatirlanir."""
+        """Secim yoksa isletim sisteminin temasi; dugmeyle acik/koyu secilir ve secim hatirlanir."""
         self.assertIn('[data-theme="light"]', self.css)
+        self.assertIn('[data-theme="dark"]', self.css)
+        self.assertIn("@media (prefers-color-scheme: dark)", self.css)
         self.assertIn("color-scheme: dark", self.css)
         self.assertIn('localStorage.getItem("p55_theme")', self.html)
         self.assertIn('id="theme-toggle"', self.html)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn('matchMedia("(prefers-color-scheme: dark)")', app)
+        self.assertIn('localStorage.setItem("p55_theme"', app)
+
+    def test_susleme_animasyonu_yok(self):
+        """Tema sade: 3B sahne, imlec, paralaks ve kayan acilislar kaldirildi; yalnizca islevsel gostergeler kaldi."""
+        for ad in ("fx.js", "cinema.js", "vendor"):
+            self.assertFalse((STATIC / ad).exists(), ad)
+        for kalinti in ("<canvas", "data-split", "data-magnetic", "motion-toggle", "fx.js", "cinema.js"):
+            self.assertNotIn(kalinti, self.html)
+        izinli = {"spin", "indet", "dot"}                     # yukleniyor, ilerleme cubugu, "yaziyor" noktalari
+        self.assertEqual(set(re.findall(r"@keyframes\s+([\w-]+)", self.css)), izinli)
+        self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
 
     def test_statik_dosyalar_var_ve_surumlu(self):
         """Her yerel CSS/JS baglantisi var olan bir dosyaya gider ve ?v= tasir (tarayici eskisini onbellekten
         getirmesin). Yollar goreli: site Vercel'de kok dizinden sunulur."""
         baglantilar = re.findall(r'(?:href|src)="([\w.-]+\.(?:js|css)\?v=\w+)"', self.html)
         adlar = {b.split("?")[0] for b in baglantilar}
-        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "fx.js", "style.css"} <= adlar)
+        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "style.css"} <= adlar)
         for ad in adlar:
             self.assertTrue((STATIC / ad).is_file(), ad)
         self.assertNotIn('"/static/', self.html)
@@ -81,41 +96,6 @@ class ArayuzTests(unittest.TestCase):
         app = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn('if (o.auth && P55.token) xhr.setRequestHeader("Authorization"', app)
 
-    def test_efekt_katmani_yerel_ve_kapatilabilir(self):
-        """Gorsel efektler (fx.js) yerel dosyadir; CDN'den kod yuklenmez, "hareketi azalt" ve dokunmatik cihaz dikkate alinir."""
-        self.assertIn('src="fx.js?v=', self.html)
-        self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
-        fx = (STATIC / "fx.js").read_text(encoding="utf-8")
-        self.assertIn("prefers-reduced-motion: reduce", fx)
-        self.assertIn("pointer: fine", fx)                    # ozel imlec yalnizca fareyle
-        self.assertIn("try { part(); }", fx)                  # bir efekt hata verirse digerleri ve uygulama calisir
-
-    def test_sinematik_sahne_yerel_kutuphaneyle_ve_yedekli(self):
-        """3B sahne (cinema.js) Three.js'in depodaki kopyasini kullanir; WebGL yoksa 2B heykel yedek kalir."""
-        self.assertIn('<script type="module" src="cinema.js?v=', self.html)
-        self.assertRegex(self.html, r'<canvas id="cinema" aria-hidden="true"')
-        cinema = (STATIC / "cinema.js").read_text(encoding="utf-8")
-        self.assertIn('from "./vendor/three.min.js"', cinema)
-        self.assertNotRegex(cinema, r'from\s+"https?://', "kutuphane internetten yuklenmemeli")
-        self.assertTrue((STATIC / "vendor" / "three.min.js").is_file())
-        self.assertIn("MIT", (STATIC / "vendor" / "three.LICENSE").read_text(encoding="utf-8"))
-        self.assertIn("prefers-reduced-motion: reduce", cinema)
-        self.assertIn("IntersectionObserver", cinema)                 # ekranda degilken cizim durur
-        self.assertIn('dispatchEvent(new Event("p55:cinema"))', cinema)
-        fx = (STATIC / "fx.js").read_text(encoding="utf-8")
-        self.assertIn('"p55:cinema"', fx)                            # 2B heykel sahne acilinca durur
-
-    def test_animasyon_dugmesi_sistem_ayarini_ezer(self):
-        """"Hareketi azalt" acik bir bilgisayarda da kullanici animasyonlari acabilmeli (ve tersi)."""
-        self.assertIn('id="motion-toggle"', self.html)
-        self.assertIn('localStorage.getItem("p55_motion")', self.html)    # sayfa cizilmeden uygulanir
-        self.assertIn(':root:not([data-motion="on"])', self.css)
-        self.assertIn(':root[data-motion="off"]', self.css)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
-        self.assertIn('dispatchEvent(new Event("p55:motion"))', app)
-        for ad in ("fx.js", "cinema.js"):
-            self.assertIn('"p55:motion"', (STATIC / ad).read_text(encoding="utf-8"), ad)
-
     def test_hesabim_sekmesi(self):
         """Ad, parola (mevcut parola + tekrar) ve onayli hesap silme; sekme klavyeyle de gezilebilir (role=tab)."""
         self.assertIn('data-tab="account"', self.html)
@@ -135,13 +115,6 @@ class ArayuzTests(unittest.TestCase):
         chat = (STATIC / "chat.js").read_text(encoding="utf-8")
         self.assertIn('method: "PATCH"', chat)
         self.assertIn('"Escape"', chat)
-
-    def test_dekoratif_ogeler_ekran_okuyucudan_gizli(self):
-        """3B heykel tuvali ve arka plan susu ekran okuyucuya okunmaz; kaydiricilarin etiketi vardir."""
-        self.assertRegex(self.html, r'<canvas id="sculpture" aria-hidden="true"')
-        self.assertRegex(self.html, r'class="void" aria-hidden="true"')
-        for kimlik in ("fx-light", "fx-depth"):
-            self.assertIn(f'<label for="{kimlik}"', self.html)
 
     def test_ana_sayfa_giris_formuyla_acilmaz(self):
         """Ana sayfa proje tanitimidir; giris formu <dialog> penceresindedir ve yalnizca dugmeyle acilir."""
@@ -195,11 +168,22 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn('"/auth/resend-verification"', app)
         self.assertIn("e.status === 403", app)                   # girişte doğrulanmamış hesap -> kod paneli
 
+    def test_hidden_her_zaman_gizler(self):
+        """Gercek hata: button { display: inline-flex } hidden'i eziyordu, giristen sonra "Giris yap" gorunuyordu."""
+        self.assertIn("[hidden] { display: none !important; }", self.css)
+
+    def test_belge_yeniden_indekslenebilir(self):
+        """Embedding modeli degisince eski belgeler aranamaz; her hazir belgede "Yeniden indeksle" olmali."""
+        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        self.assertIn("if (d.chunk_count > 0)", docs)
+        self.assertIn('"/reindex", { method: "POST" }', docs)
+        self.assertIn("P55.setBusy(btn, true)", docs)
+
     def test_yukle_dugmesi_dosya_secilene_kadar_pasif(self):
         self.assertRegex(self.html, r'<button type="submit" id="upload-btn"[^>]*\sdisabled')
         docs = (STATIC / "docs.js").read_text(encoding="utf-8")
         self.assertIn("btn.disabled = !f || tooBig", docs)
-        self.assertIn("#upload-btn.ready", self.css)            # aktiflesince bir kez parlar
+        self.assertIn("#upload-btn.ready", self.css)            # dosya secilince vurgulanir
 
     def test_yukleme_gercek_ilerleme_gosterir(self):
         app = (STATIC / "app.js").read_text(encoding="utf-8")
@@ -209,7 +193,7 @@ class ArayuzTests(unittest.TestCase):
 
     def test_sekmeler_erisilebilir(self):
         """Her sekme dugmesi kendi panelini gosterir (aria-controls), panel de dugmeye baglidir (aria-labelledby)."""
-        for ad in ("docs", "chat", "search", "report", "admin"):
+        for ad in ("docs", "chat", "search", "report", "account", "admin"):
             self.assertIn(f'id="tabbtn-{ad}" aria-controls="tab-{ad}"', self.html)
             self.assertRegex(self.html, rf'id="tab-{ad}"[^>]*aria-labelledby="tabbtn-{ad}"')
 

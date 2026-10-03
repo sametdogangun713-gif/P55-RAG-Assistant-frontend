@@ -198,56 +198,28 @@ const P55 = {
       b.tabIndex = selected ? 0 : -1;               // klavyede sekme listesine tek duraktan girilir, oklarla gezilir
     });
     document.querySelectorAll(".tab").forEach(t => { t.hidden = t.id !== "tab-" + name; });
-    P55.moveIndicator();
     const tab = P55.tabs[name];
     if (tab && tab.onShow) tab.onShow();
   },
 
-  // Secili menu ogesinin arkasindaki gosterge ogeye kayarak gider (CSS transition).
-  // Masaustunde menu dikeydir (yukari-asagi kayar), dar ekranda yataydir (saga-sola kayar).
-  moveIndicator() {
-    const btn = document.querySelector('#tabs button[aria-selected="true"]');
-    const bar = document.getElementById("tab-indicator");
-    if (!btn || !bar || btn.hidden) return;
-    const vertical = getComputedStyle(document.getElementById("tabs")).flexDirection === "column";
-    if (vertical) {
-      bar.style.width = "";
-      bar.style.height = btn.offsetHeight + "px";
-      bar.style.transform = "translateY(" + btn.offsetTop + "px)";
-    } else {
-      bar.style.height = "";
-      bar.style.width = btn.offsetWidth + "px";
-      bar.style.transform = "translateX(" + btn.offsetLeft + "px)";
-    }
+  /* Tema: kullanici sectiyse <html data-theme="light|dark">, secmediyse isletim sisteminin ayari (CSS
+     prefers-color-scheme). Dugme o an GORUNEN temanin tersine gecer ve secimi hatirlar. */
+  osDark: matchMedia("(prefers-color-scheme: dark)"),
+  isDark() {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === "dark" : P55.osDark.matches;
   },
-
+  syncThemeButton() {
+    const btn = document.getElementById("theme-toggle");
+    const label = P55.isDark() ? "Açık temaya geç" : "Koyu temaya geç";
+    btn.setAttribute("aria-label", label);
+    btn.title = label;
+  },
   toggleTheme() {
     const root = document.documentElement;
-    root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";   // varsayilan: koyu (siyah)
+    root.dataset.theme = P55.isDark() ? "light" : "dark";
     try { localStorage.setItem("p55_theme", root.dataset.theme); } catch (e) { /* gizli pencere: tema yalnizca bu oturumda */ }
-  },
-
-  /* Animasyonlar acik mi? Varsayilan: isletim sisteminin "hareketi azalt" ayari. Dugmeye basilinca kullanicinin
-     secimi (data-motion="on"/"off") onu ezer ve hatirlanir. fx.js ve cinema.js "p55:motion" olayini dinler. */
-  osReducedMotion: matchMedia("(prefers-reduced-motion: reduce)"),
-  motionReduced() {
-    const m = document.documentElement.dataset.motion;
-    return m === "off" || (m !== "on" && P55.osReducedMotion.matches);
-  },
-  syncMotionButton() {
-    const off = P55.motionReduced();
-    document.documentElement.classList.toggle("motion-reduced", off);
-    const btn = document.getElementById("motion-toggle");
-    btn.setAttribute("aria-pressed", String(!off));
-    btn.title = off ? "Animasyonlar kapalı — açmak için tıkla" : "Animasyonlar açık — kapatmak için tıkla";
-  },
-  toggleMotion() {
-    const root = document.documentElement;
-    root.dataset.motion = P55.motionReduced() ? "on" : "off";
-    try { localStorage.setItem("p55_motion", root.dataset.motion); } catch (e) { /* yalnizca bu oturumda */ }
-    P55.syncMotionButton();
-    dispatchEvent(new Event("p55:motion"));
-    P55.show(root.dataset.motion === "on" ? "Animasyonlar açıldı" : "Animasyonlar kapatıldı");
+    P55.syncThemeButton();
   },
 
   async start() {
@@ -373,9 +345,8 @@ const P55 = {
 
     document.getElementById("logout").addEventListener("click", () => P55.logout());
     document.getElementById("theme-toggle").addEventListener("click", P55.toggleTheme);
-    document.getElementById("motion-toggle").addEventListener("click", P55.toggleMotion);
-    P55.osReducedMotion.addEventListener("change", () => { P55.syncMotionButton(); dispatchEvent(new Event("p55:motion")); });
-    P55.syncMotionButton();
+    P55.osDark.addEventListener("change", P55.syncThemeButton);     // sistem temasi degisirse dugme yazisi da degissin
+    P55.syncThemeButton();
 
     // "Goster/Gizle": her dugme aria-controls ile bagli oldugu parola kutusunu degistirir (giris ve kayit)
     document.querySelectorAll("[data-pw-toggle]").forEach(t => t.addEventListener("click", () => {
@@ -399,7 +370,6 @@ const P55 = {
       target.focus();
       P55.setTab(target.dataset.tab);
     });
-    window.addEventListener("resize", P55.moveIndicator);
 
     if (P55.token) {
       try { await P55.afterLogin(P55.token); } catch (e) { P55.logout(); }
