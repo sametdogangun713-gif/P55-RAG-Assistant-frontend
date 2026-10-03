@@ -2,7 +2,7 @@
 /* Belgelerim ve Arama sekmeleri */
 (function () {
   const { el } = P55;
-  const STATUS_TR = { uploaded: "yüklendi", chunked: "parçalandı", indexed: "hazır", failed: "hata" };
+  const STATUS_TR = { uploaded: "yüklendi", chunked: "indeksleniyor", indexed: "hazır", failed: "hata" };
 
   function fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
   function ext(name) { const i = name.lastIndexOf("."); return i > 0 ? name.slice(i + 1, i + 5) : "?"; }
@@ -71,8 +71,11 @@
       const actions = el("span", {});
       // Hata olduysa ya da embedding modeli degistiyse (eski vektorler yeni modelle aranamaz) belge yeniden indekslenir
       if (d.chunk_count > 0) {
-        actions.append(el("button", { type: "button", class: "secondary", "aria-label": "Yeniden indeksle: " + d.filename,
-          title: "Parçaları yeniden vektörleştir", onclick: (ev) => reindex(d, ev.currentTarget) }, "Yeniden indeksle"), " ");
+        const resume = d.status === "chunked";             // yarida kalmis (sekme kapandi, ag koptu): kaldigi yerden
+        actions.append(el("button", { type: "button", class: "secondary",
+          "aria-label": (resume ? "İndekslemeye devam et: " : "Yeniden indeksle: ") + d.filename,
+          title: resume ? "Kalan parçaları indeksle" : "Parçaları yeniden vektörleştir",
+          onclick: (ev) => reindex(d, ev.currentTarget) }, resume ? "Devam et" : "Yeniden indeksle"), " ");
       }
       actions.append(el("button", { type: "button", class: "danger", "aria-label": "Sil: " + d.filename, onclick: () => removeDoc(d) }, "Sil"));
       const row = el("tr", {},
@@ -89,11 +92,35 @@
 
   async function reindex(d, btn) {
     P55.setBusy(btn, true);
-    P55.show(d.filename + " yeniden indeksleniyor… (büyük belgede bir dakikayı bulabilir)", "info");
-    try { await P55.request("/documents/" + d.id + "/reindex", { method: "POST" }); P55.show("Yeniden indekslendi: " + d.filename); }
-    catch (e) { P55.show(e.message, true); }
+    P55.show(d.filename + " indeksleniyor…", "info");
+    try {
+      let out = await P55.request("/documents/" + d.id + "/reindex", { method: "POST" });
+      out = await finishIndexing(out, (x) => P55.show(d.filename + " indeksleniyor " + pctText(x), "info"));
+      P55.show("İndekslendi: " + d.filename);
+    } catch (e) { P55.show(e.message, true); }
     P55.setBusy(btn, false);
     loadDocs();
+  }
+
+  // "%40 (800 / 2000 parça)"
+  function pctText(d) {
+    const pct = d.total_chunks ? Math.floor((d.indexed_chunks / d.total_chunks) * 100) : 0;
+    return "%" + pct + " (" + d.indexed_chunks + " / " + d.total_chunks + " parça)";
+  }
+
+  // Buyuk belge: sunucu her istekte bir sure butcesi kadar (Vercel'de 60 sn) indeksler ve belge "chunked" kalir.
+  // Bitene kadar /index-next tekrar cagrilir; her yanitta indexed_chunks / total_chunks ile ilerleme gosterilir.
+  // Uc yanit ust uste ilerleme olmazsa durulur (sonsuz donguye girmesin; "Devam et" ile surdurulebilir).
+  async function finishIndexing(d, onStep) {
+    let last = -1, stalled = 0;
+    while (d.status === "chunked") {
+      if (onStep) onStep(d);
+      if (d.indexed_chunks <= last && ++stalled >= 3) throw new Error("İndeksleme ilerlemiyor; daha sonra “Devam et” ile sürdürebilirsin.");
+      if (d.indexed_chunks > last) stalled = 0;
+      last = d.indexed_chunks;
+      d = await P55.request("/documents/" + d.id + "/index-next", { method: "POST" });
+    }
+    return d;
   }
 
   async function removeDoc(d) {
@@ -142,6 +169,15 @@
         status.textContent = "İndeksleniyor…";
       }
     };
+    // Indeksleme suruyorsa (buyuk belge) cubuk gercek yuzdeyi gosterir: indekslenen / toplam parca
+    const showIndexing = (d) => {
+      progress.hidden = false;
+      progress.classList.remove("indeterminate");
+      const pct = d.total_chunks ? Math.floor((d.indexed_chunks / d.total_chunks) * 100) : 0;
+      progress.setAttribute("aria-valuenow", String(pct));
+      bar.style.width = pct + "%";
+      status.textContent = "İndeksleniyor " + pctText(d);
+    };
     const resetProgress = () => {
       progress.hidden = true;
       progress.classList.remove("indeterminate");
@@ -174,7 +210,11 @@
       P55.show("Yükleniyor ve indeksleniyor...", "info");
       let uploaded = false;
       try {
-        const d = await uploadFile(input.files[0], setProgress);
+        let d = await uploadFile(input.files[0], setProgress);
+        if (d.status === "chunked") {
+          P55.show("Büyük belge: parça parça indeksleniyor. Bu sekmeyi kapatma; kapatırsan “Devam et” ile sürdürebilirsin.", "info");
+          d = await finishIndexing(d, showIndexing);
+        }
         P55.show(d.status === "indexed" ? "Belge hazır: " + d.filename : "Belge yüklendi (durum: " + d.status + ")", d.status === "failed");
         uploaded = true;
       } catch (e) { P55.show(e.message, true); }
