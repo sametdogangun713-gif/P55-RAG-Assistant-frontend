@@ -69,8 +69,10 @@
     for (const d of docs) {
       const status = el("span", { class: "badge " + d.status }, STATUS_TR[d.status] || d.status);
       const actions = el("span", {});
-      if (d.status === "failed" && d.chunk_count > 0) {
-        actions.append(el("button", { type: "button", class: "secondary", onclick: () => reindex(d.id) }, "Yeniden indeksle"), " ");
+      // Hata olduysa ya da embedding modeli degistiyse (eski vektorler yeni modelle aranamaz) belge yeniden indekslenir
+      if (d.chunk_count > 0) {
+        actions.append(el("button", { type: "button", class: "secondary", "aria-label": "Yeniden indeksle: " + d.filename,
+          title: "Parçaları yeniden vektörleştir", onclick: (ev) => reindex(d, ev.currentTarget) }, "Yeniden indeksle"), " ");
       }
       actions.append(el("button", { type: "button", class: "danger", "aria-label": "Sil: " + d.filename, onclick: () => removeDoc(d) }, "Sil"));
       const row = el("tr", {},
@@ -85,9 +87,12 @@
     }
   }
 
-  async function reindex(id) {
-    try { await P55.request("/documents/" + id + "/reindex", { method: "POST" }); P55.show("Yeniden indekslendi"); }
+  async function reindex(d, btn) {
+    P55.setBusy(btn, true);
+    P55.show(d.filename + " yeniden indeksleniyor… (büyük belgede bir dakikayı bulabilir)", "info");
+    try { await P55.request("/documents/" + d.id + "/reindex", { method: "POST" }); P55.show("Yeniden indekslendi: " + d.filename); }
     catch (e) { P55.show(e.message, true); }
+    P55.setBusy(btn, false);
     loadDocs();
   }
 
