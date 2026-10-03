@@ -1,0 +1,137 @@
+"use strict";
+/* Sohbet sekmesi: konusma listesi, mesajlar, kaynaklar. Sunucu metni yalnizca textContent ile yazilir. */
+(function () {
+  const { el } = P55;
+  let currentId = null;
+  const NOTES = {
+    no_context: "Belgelerinde bu soruyla ilgili bir bölüm bulunamadı.",
+    no_info: "Belgelerinde yeterli bilgi yok.",
+    unverified: "Bu yanıt kaynaklarla doğrulanamadı; dikkatli ol.",
+  };
+
+  function sourcesBlock(sources) {
+    const box = el("div", { class: "sources" });
+    for (const s of sources || []) {
+      const label = "[" + s.n + "] " + s.filename + (s.page_no ? " · sayfa " + s.page_no : "") + " · benzerlik " + Number(s.score).toFixed(2);
+      box.append(el("details", {}, el("summary", {}, label), el("p", {}, s.excerpt || "")));
+    }
+    return box;
+  }
+
+  function bubble(m) {
+    const warn = m.role === "assistant" && m.status && m.status !== "answered";
+    const b = el("div", { class: "bubble " + m.role + (warn ? " warn" : "") }, m.content);
+    if (warn && NOTES[m.status]) b.append(el("div", { class: "note" }, NOTES[m.status]));
+    if (m.sources && m.sources.length) b.append(sourcesBlock(m.sources));
+    return b;
+  }
+
+  // Bos sohbet ekrani: kullaniciya ne yapacagini soyler.
+  function emptyState() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("fill", "none"); svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.5"); svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12zM8.5 12h.01M12 12h.01M15.5 12h.01");
+    path.setAttribute("stroke-linecap", "round");
+    svg.append(path);
+    return el("div", { class: "chat-empty" }, el("div", {}, svg,
+      el("strong", {}, "Belgelerine bir soru sor"),
+      el("span", {}, "Yanıtlar yüklediğin belgelerden, [1] [2] gibi kaynak numaralarıyla gelir.")));
+  }
+
+  function resetThread() { document.getElementById("chat-thread").replaceChildren(emptyState()); }
+
+  function scrollDown() {
+    const t = document.getElementById("chat-thread");
+    t.scrollTop = t.scrollHeight;
+  }
+
+  async function loadList() {
+    const ul = document.getElementById("chat-list");
+    let list;
+    try { list = await P55.request("/conversations"); } catch (e) { P55.show(e.message, true); return; }
+    ul.replaceChildren();
+    for (const c of list) {
+      const li = el("li", { class: c.id === currentId ? "active" : "" },
+        el("button", { type: "button", class: "conv", title: c.title, onclick: () => openConv(c.id) }, c.title),
+        el("button", { type: "button", class: "danger del", "aria-label": "Sohbeti sil: " + c.title, onclick: () => removeConv(c) }, "×"));
+      ul.append(li);
+    }
+  }
+
+  async function openConv(id) {
+    currentId = id;
+    const thread = document.getElementById("chat-thread");
+    thread.replaceChildren();
+    try {
+      const msgs = await P55.request("/conversations/" + id + "/messages");
+      if (!msgs.length) resetThread();
+      for (const m of msgs) thread.append(bubble(m));
+    } catch (e) { P55.show(e.message, true); }
+    scrollDown();
+    loadList();
+  }
+
+  async function removeConv(c) {
+    if (!confirm("“" + c.title + "” sohbeti silinsin mi?")) return;
+    try { await P55.request("/conversations/" + c.id, { method: "DELETE" }); } catch (e) { P55.show(e.message, true); }
+    if (currentId === c.id) { currentId = null; resetThread(); }
+    loadList();
+  }
+
+  async function newConv() {
+    const c = await P55.request("/conversations", { method: "POST", json: {} });
+    currentId = c.id;
+    resetThread();
+    await loadList();
+    return c;
+  }
+
+  function bindForm() {
+    document.getElementById("chat-new").addEventListener("click", () => newConv().catch(e => P55.show(e.message, true)));
+    // Enter gonderir, Shift+Enter yeni satir. (Turkce klavyede harf birlestirme sirasinda gonderme: isComposing)
+    document.getElementById("chat-input").addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
+        ev.preventDefault();
+        document.getElementById("chat-form").requestSubmit();
+      }
+    });
+    document.getElementById("chat-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const input = document.getElementById("chat-input");
+      const text = input.value.trim();
+      if (!text) return;
+      const btn = ev.target.querySelector("button");
+      P55.setBusy(btn, true);
+      const thread = document.getElementById("chat-thread");
+      try {
+        if (currentId === null) await newConv();
+        const empty = thread.querySelector(".chat-empty");
+        if (empty) empty.remove();
+        thread.append(bubble({ role: "user", content: text }));
+        const waiting = el("div", { class: "bubble assistant", "aria-label": "Yanıtlanıyor" },
+          el("span", { class: "typing" }, el("i", {}), el("i", {}), el("i", {})));
+        thread.append(waiting);
+        scrollDown();
+        try {
+          const out = await P55.request("/conversations/" + currentId + "/messages", { method: "POST", json: { content: text } });
+          waiting.replaceWith(bubble(out.assistant_message));
+          input.value = "";
+          P55.show("");
+        } catch (e) {
+          waiting.remove();
+          thread.lastElementChild && thread.lastElementChild.classList.contains("user") && thread.lastElementChild.remove();
+          if (!thread.children.length) resetThread();
+          P55.show(e.message, true);        // soru metni kutuda kalir, tekrar gonderilebilir
+        }
+        scrollDown();
+        loadList();
+      } catch (e) { P55.show(e.message, true); }
+      P55.setBusy(btn, false);
+    });
+  }
+
+  P55.tabs.chat = { onShow() { if (currentId === null) resetThread(); loadList(); } };
+  bindForm();
+})();
