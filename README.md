@@ -19,11 +19,8 @@ public/docs.js      belgeler (yükleme: yerelde doğrudan, bulutta Supabase Stor
 public/chat.js      sohbet
 public/report.js    kullanım raporu ve CSV
 public/admin.js     yönetim (yalnızca yönetici)
-public/fx.js        görsel efektler (yedek 2B heykel, imleç, paralaks); "hareketi azalt" açıksa kapanır
-public/cinema.js    ana sayfadaki sinematik 3B sahne (Three.js / WebGL); adres?sahne=16 ile istenen saniyeden başlar
 public/account.js   Hesabım sekmesi: ad, parola, hesap silme
-public/vendor/      Three.js 0.186.1'in yerel alt kümesi (MIT); nasıl üretildiği vendor/README.md'de
-public/style.css    tema (koyu/açık), düzen (masaüstü/mobil)
+public/style.css    keskin siyah-beyaz tema: açık/koyu (seçim yoksa işletim sistemi ayarı), düzen (masaüstü/mobil); süsleme animasyonu yok
 tests/              arayüz testleri (yalnızca Python standart kütüphanesi)
 vercel.json         Vercel ayarı: site public/ klasöründen sunulur + güvenlik başlıkları
 ```
@@ -52,5 +49,5 @@ Backend, `http://localhost:5500`'e izin verecek şekilde ayarlıdır (`ALLOWED_O
 ```bat
 python -m unittest discover -s tests -v
 ```
-ya da `testleri_calistir.bat`. 16 test: statik dosya bağlantıları, XSS taraması, gizli anahtar taraması, tema, erişilebilirlik
+ya da `testleri_calistir.bat`. 21 test: statik dosya bağlantıları, XSS taraması, gizli anahtar taraması, tema, erişilebilirlik
 (ARIA, "hareketi azalt"), şifremi unuttum, yükleme düğmesi ve ilerleme, bulut yükleme akışı.
