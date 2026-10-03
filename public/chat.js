@@ -52,12 +52,39 @@
     let list;
     try { list = await P55.request("/conversations"); } catch (e) { P55.show(e.message, true); return; }
     ul.replaceChildren();
+    if (!list.length) ul.append(el("li", { class: "chat-side-empty" }, "Henüz sohbet yok. İlk sorunu yaz ya da “Yeni sohbet”e bas."));
     for (const c of list) {
       const li = el("li", { class: c.id === currentId ? "active" : "" },
         el("button", { type: "button", class: "conv", title: c.title, onclick: () => openConv(c.id) }, c.title),
+        el("button", { type: "button", class: "icon-mini ren", "aria-label": "Yeniden adlandır: " + c.title, title: "Yeniden adlandır", onclick: () => renameConv(li, c) }, "✎"),
         el("button", { type: "button", class: "danger del", "aria-label": "Sohbeti sil: " + c.title, onclick: () => removeConv(c) }, "×"));
       ul.append(li);
     }
+  }
+
+  // Yeniden adlandirma: satirdaki ad yerine bir metin kutusu acilir. Enter kaydeder, Esc ya da odagi kaybetmek vazgecer.
+  function renameConv(li, c) {
+    const input = el("input", { type: "text", class: "conv-edit", maxlength: "80", "aria-label": "Sohbetin yeni adı" });
+    input.value = c.title;
+    li.replaceChildren(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = async (save) => {
+      if (done) return;
+      done = true;
+      const title = input.value.trim();
+      if (save && title && title !== c.title) {
+        try { await P55.request("/conversations/" + c.id, { method: "PATCH", json: { title } }); P55.show("Sohbet adı değişti"); }
+        catch (e) { P55.show(e.message, true); }
+      }
+      loadList();
+    };
+    input.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); finish(true); }
+      if (ev.key === "Escape") { ev.preventDefault(); finish(false); }
+    });
+    input.addEventListener("blur", () => finish(false));
   }
 
   async function openConv(id) {

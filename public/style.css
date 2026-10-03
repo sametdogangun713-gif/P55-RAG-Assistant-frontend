@@ -98,7 +98,7 @@ header h1 small { display: block; font: 500 .64rem/1.4 var(--f-mono); letter-spa
 .site-nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: right; transition: transform .45s var(--ease); }
 .site-nav a:hover { color: var(--ink); }
 .site-nav a:hover::after { transform: scaleX(1); transform-origin: left; }
-#header-login { padding: .55rem 1rem; }
+#header-login, #header-register { padding: .55rem 1rem; }
 .header-actions { display: flex; align-items: center; gap: .6rem; }
 #userbox { display: flex; align-items: center; gap: .65rem; padding-right: .7rem; border-right: 1px solid var(--border); }
 #userbox[hidden] { display: none; }
@@ -147,7 +147,15 @@ main { max-width: 1320px; margin: 1.75rem auto 0; padding: 0 clamp(16px, 3vw, 28
   display: grid; grid-template-columns: minmax(0, 1fr); align-items: end;
   min-height: calc(100svh - 64px - 1.75rem); padding: 2rem 0 3rem;
 }
-#sculpture { position: absolute; z-index: -1; top: -1.75rem; bottom: 0; left: 50%; width: 100vw; height: calc(100% + 1.75rem); translate: -50% 0; pointer-events: none; }
+#sculpture, #cinema { position: absolute; z-index: -1; top: -1.75rem; bottom: 0; left: 50%; width: 100vw; height: calc(100% + 1.75rem); translate: -50% 0; pointer-events: none; }
+/* Sinematik sahne (cinema.js): hazir olunca yavasca belirir. Sol taraf (baslik) sayfa rengine dogru silinir ki
+   yazi okunabilsin. Acik temada sahne sagda cerceveli bir "film karesi" olur (koyu sahne acik zeminde boyle durur). */
+#cinema { opacity: 0; transition: opacity 1.8s var(--ease);
+  -webkit-mask-image: linear-gradient(90deg, transparent 6%, rgba(0, 0, 0, .35) 32%, #000 56%);
+  mask-image: linear-gradient(90deg, transparent 6%, rgba(0, 0, 0, .35) 32%, #000 56%); }
+.cinema-on #cinema { opacity: 1; }
+.cinema-on #sculpture { display: none; }
+:root[data-theme="light"] #cinema { -webkit-mask-image: none; mask-image: none; clip-path: inset(9% 2% 9% 50% round 2px); }
 .hero-meta { position: absolute; inset: .5rem 0 auto; display: flex; justify-content: space-between; color: var(--faint); pointer-events: none; }
 .hero-copy { min-width: 0; max-width: 700px; container-type: inline-size; }
 .hero-title {
@@ -197,6 +205,8 @@ html:has(#auth-dialog[open]) { overflow: hidden; }                  /* pencere a
 }
 .link-btn:hover:not(:disabled) { color: var(--accent); background: none; box-shadow: none; text-decoration-color: var(--accent); }
 .forgot-link { float: right; }
+.auth-switch { clear: both; margin: 1.3rem 0 0; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
+.auth-switch .link-btn { margin: 0 0 0 .25rem; font-size: .85rem; color: var(--ink); }
 .code-input { font: 500 1.5rem/1 var(--f-mono) !important; letter-spacing: .5em; text-align: center; padding-left: 1.4rem !important; }
 #auth-msg { margin: 1.2rem 0 0; padding: .7rem .85rem; font-size: .87rem; border: 1px solid var(--border-strong); border-radius: var(--radius); animation: rise .35s var(--ease) both; }
 #auth-msg:not(.ok):not(.err):not(.info) { display: none; }
@@ -269,6 +279,23 @@ button.secondary, .icon-btn { background: transparent; color: var(--ink); border
 button.secondary:hover:not(:disabled), .icon-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 22px -8px var(--glow); }
 button.danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
 button.danger:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); box-shadow: none; }
+
+/* ---------- Belgelerim: suzme / siralama ---------- */
+.docs-tools { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 1rem; align-items: end; margin: 0 0 1rem; }
+.docs-tools label { margin-top: 0; }
+.docs-summary { margin: 0; padding-bottom: .7rem; color: var(--faint); font-size: .75rem; white-space: nowrap; }
+@media (max-width: 700px) { .docs-tools { grid-template-columns: minmax(0, 1fr); } .docs-summary { white-space: normal; padding: 0; } }
+
+/* ---------- Hesabim ---------- */
+.account-facts { margin: 1.2rem 0 1.6rem; padding: 1.2rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; }
+.account-card { padding: 1.3rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); animation: rise .5s var(--ease) both; }
+.account-card h3 { margin: 0 0 .9rem; font: 600 1.05rem var(--f-display); }
+.account-card .row { margin-top: 1rem; }
+.danger-zone { border-color: color-mix(in srgb, var(--bad) 35%, transparent); background: color-mix(in srgb, var(--bad-soft) 40%, var(--surface-2)); }
+.danger-zone h3 { color: var(--bad); }
+.danger-zone p { margin: 0 0 .9rem; color: var(--muted); }
+@media (max-width: 700px) { .account-grid { grid-template-columns: minmax(0, 1fr); } }
 button:disabled { opacity: .38; cursor: not-allowed; }
 button.busy { opacity: .7; cursor: progress; }
 button.busy { color: transparent !important; }
@@ -422,8 +449,13 @@ td button { padding: .4rem .7rem; font-size: .66rem; }
 }
 .chat-side li button.conv:hover:not(:disabled) { color: var(--ink); background: var(--surface-2); border-color: transparent; box-shadow: none; }
 .chat-side li.active button.conv { color: var(--ink); font-weight: 600; border-color: transparent; box-shadow: inset 1px 0 0 var(--accent); background: var(--accent-soft); }
-.chat-side li button.del { padding: .3rem .55rem; opacity: 0; transition: opacity .2s; }
-.chat-side li:hover button.del, .chat-side li button.del:focus-visible, .chat-side li.active button.del { opacity: 1; }
+.chat-side li button.del, .chat-side li button.ren { padding: .3rem .55rem; opacity: 0; transition: opacity .2s; }
+.chat-side li button.ren { background: transparent; border-color: transparent; color: var(--muted); box-shadow: none; }
+.chat-side li button.ren:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
+.chat-side li:hover :is(button.del, button.ren), .chat-side li :is(button.del, button.ren):focus-visible, .chat-side li.active :is(button.del, button.ren) { opacity: 1; }
+.chat-side li .conv-edit { flex: 1; min-width: 0; padding: .4rem .55rem; font-size: .88rem; }
+.chat-side li.chat-side-empty { display: block; padding: .5rem .2rem; color: var(--faint); font-size: .85rem; }
+@media (hover: none) { .chat-side li :is(button.del, button.ren) { opacity: 1; } }   /* dokunmatikte "uzerine gelme" yok */
 .chat-main { display: flex; flex-direction: column; min-width: 0; padding: 1.2rem 1.5rem 1.3rem; }
 #chat-thread { flex: 1; min-height: 320px; max-height: 62vh; overflow-y: auto; padding: .3rem .2rem .8rem; scroll-behavior: smooth; }
 .chat-empty { display: grid; place-items: center; text-align: center; color: var(--muted); min-height: 300px; padding: 1rem; }
@@ -523,6 +555,9 @@ html:has(#auth-dialog[open]) :is(.cursor-dot, .cursor-ring) { opacity: 0 !import
   .about-grid { grid-template-columns: minmax(0, 1fr); }
   .hero-meta { display: none; }
   .hero-title { margin-bottom: 1.4rem; }
+  /* Dar ekranda sahne ustte durur, asagiya (yaziya) dogru silinir */
+  #cinema { -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 60%); mask-image: linear-gradient(180deg, #000 30%, transparent 60%); }
+  :root[data-theme="light"] #cinema { clip-path: inset(3% 3% calc(100% - 330px) 3% round 2px); }
   #app-view { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   #tabs { position: relative; top: 0; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
   #tabs button { width: auto; flex: 1; justify-content: center; }
@@ -537,6 +572,7 @@ html:has(#auth-dialog[open]) :is(.cursor-dot, .cursor-ring) { opacity: 0 !import
   #userbox { border-right: 0; padding-right: 0; }
   .hero { padding-top: 260px; }
   #header-login { padding: .5rem .7rem; }
+  #header-register { display: none; }                               /* dar ekranda yer yok; kayit ana sayfadaki dugmeden */
   .steps { grid-template-columns: minmax(0, 1fr); }
   .facts div { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
   .auth-card { padding: 1.6rem 1.2rem; }
@@ -559,7 +595,14 @@ html:has(#auth-dialog[open]) :is(.cursor-dot, .cursor-ring) { opacity: 0 !import
 }
 
 /* Hareket hassasiyeti olan kullanicilar icin animasyonlari kapat */
+/* Hareketi azalt: isletim sistemi ayari (prefers-reduced-motion) acikken animasyonlar kapanir; ust bardaki
+   "Animasyonlar" dugmesi bunu ezer: data-motion="on" -> sistem ne derse desin acik, "off" -> her durumda kapali. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
-  .lattice, .beam { translate: none; }
+  :root:not([data-motion="on"]) *, :root:not([data-motion="on"]) *::before, :root:not([data-motion="on"]) *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+  :root:not([data-motion="on"]) :is(.lattice, .beam) { translate: none; }
 }
+:root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+:root[data-motion="off"] :is(.lattice, .beam) { translate: none; }
+#motion-toggle .motion-off { display: none; }
+.motion-reduced #motion-toggle .motion-on { display: none; }
+.motion-reduced #motion-toggle .motion-off { display: block; }

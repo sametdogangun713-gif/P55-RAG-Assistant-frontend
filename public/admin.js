@@ -14,7 +14,8 @@
       for (const u of users) {
         const del = u.id === P55.user.id ? "" :
           el("button", { type: "button", class: "danger", onclick: () => removeUser(u) }, "Sil");
-        ub.append(el("tr", {}, el("td", {}, u.email), el("td", {}, el("span", { class: "badge role-" + u.role }, ROLE_TR[u.role] || u.role)), el("td", {}, P55.fmtDate(u.created_at)), el("td", {}, del)));
+        const email = u.email_verified ? u.email : u.email + " (doğrulanmadı)";
+        ub.append(el("tr", {}, el("td", {}, u.full_name || "—"), el("td", {}, email), el("td", {}, el("span", { class: "badge role-" + u.role }, ROLE_TR[u.role] || u.role)), el("td", {}, P55.fmtDate(u.created_at)), el("td", {}, del)));
       }
       const db = document.querySelector("#admin-docs tbody");
       db.replaceChildren();
@@ -25,7 +26,7 @@
   }
 
   async function removeUser(u) {
-    if (!confirm(u.email + " ve tüm verisi (belgeler, sohbetler) kalıcı olarak silinsin mi?")) return;
+    if (!confirm((u.full_name ? u.full_name + " <" + u.email + ">" : u.email) + " ve tüm verisi (belgeler, sohbetler) kalıcı olarak silinsin mi?")) return;
     try { await P55.request("/admin/users/" + u.id, { method: "DELETE" }); P55.show("Kullanıcı silindi"); }
     catch (e) { P55.show(e.message, true); }
     load();

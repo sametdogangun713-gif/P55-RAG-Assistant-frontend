@@ -49,7 +49,7 @@ class ArayuzTests(unittest.TestCase):
 
     def test_arayuzde_gizli_anahtar_yok(self):
         """Tarayiciya giden her dosya herkese aciktir; anahtar burada olamaz."""
-        for dosya_yolu in sorted(STATIC.iterdir()):
+        for dosya_yolu in sorted(p for p in STATIC.rglob("*") if p.is_file()):    # vendor/ dahil
             kod = dosya_yolu.read_text(encoding="utf-8")
             for desen in (r"sk-ant-", r"gsk_[A-Za-z0-9]{10}", r"hf_[A-Za-z0-9]{10}", r"service_role",
                           r"eyJhbGciOi", r"SUPABASE_SERVICE"):
@@ -90,6 +90,52 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn("pointer: fine", fx)                    # ozel imlec yalnizca fareyle
         self.assertIn("try { part(); }", fx)                  # bir efekt hata verirse digerleri ve uygulama calisir
 
+    def test_sinematik_sahne_yerel_kutuphaneyle_ve_yedekli(self):
+        """3B sahne (cinema.js) Three.js'in depodaki kopyasini kullanir; WebGL yoksa 2B heykel yedek kalir."""
+        self.assertIn('<script type="module" src="cinema.js?v=', self.html)
+        self.assertRegex(self.html, r'<canvas id="cinema" aria-hidden="true"')
+        cinema = (STATIC / "cinema.js").read_text(encoding="utf-8")
+        self.assertIn('from "./vendor/three.min.js"', cinema)
+        self.assertNotRegex(cinema, r'from\s+"https?://', "kutuphane internetten yuklenmemeli")
+        self.assertTrue((STATIC / "vendor" / "three.min.js").is_file())
+        self.assertIn("MIT", (STATIC / "vendor" / "three.LICENSE").read_text(encoding="utf-8"))
+        self.assertIn("prefers-reduced-motion: reduce", cinema)
+        self.assertIn("IntersectionObserver", cinema)                 # ekranda degilken cizim durur
+        self.assertIn('dispatchEvent(new Event("p55:cinema"))', cinema)
+        fx = (STATIC / "fx.js").read_text(encoding="utf-8")
+        self.assertIn('"p55:cinema"', fx)                            # 2B heykel sahne acilinca durur
+
+    def test_animasyon_dugmesi_sistem_ayarini_ezer(self):
+        """"Hareketi azalt" acik bir bilgisayarda da kullanici animasyonlari acabilmeli (ve tersi)."""
+        self.assertIn('id="motion-toggle"', self.html)
+        self.assertIn('localStorage.getItem("p55_motion")', self.html)    # sayfa cizilmeden uygulanir
+        self.assertIn(':root:not([data-motion="on"])', self.css)
+        self.assertIn(':root[data-motion="off"]', self.css)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn('dispatchEvent(new Event("p55:motion"))', app)
+        for ad in ("fx.js", "cinema.js"):
+            self.assertIn('"p55:motion"', (STATIC / ad).read_text(encoding="utf-8"), ad)
+
+    def test_hesabim_sekmesi(self):
+        """Ad, parola (mevcut parola + tekrar) ve onayli hesap silme; sekme klavyeyle de gezilebilir (role=tab)."""
+        self.assertIn('data-tab="account"', self.html)
+        for kimlik in ("tab-account", "name-form", "acc-name", "password-form", "acc-pw-current", "acc-pw-new2",
+                       "delete-account-form", "acc-del-password"):
+            self.assertIn(f'id="{kimlik}"', self.html)
+        self.assertIn('src="account.js?v=', self.html)
+        js = (STATIC / "account.js").read_text(encoding="utf-8")
+        for parca in ('"/auth/me", { method: "PATCH"', '"/auth/change-password"', '"/auth/me", { method: "DELETE"', "confirm("):
+            self.assertIn(parca, js)
+
+    def test_belge_suzme_siralama_ve_sohbet_adlandirma(self):
+        for kimlik in ("docs-filter", "docs-sort", "docs-summary"):
+            self.assertIn(f'id="{kimlik}"', self.html)
+        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        self.assertIn("const fold", docs)                             # Turkce harf duyarsiz arama
+        chat = (STATIC / "chat.js").read_text(encoding="utf-8")
+        self.assertIn('method: "PATCH"', chat)
+        self.assertIn('"Escape"', chat)
+
     def test_dekoratif_ogeler_ekran_okuyucudan_gizli(self):
         """3B heykel tuvali ve arka plan susu ekran okuyucuya okunmaz; kaydiricilarin etiketi vardir."""
         self.assertRegex(self.html, r'<canvas id="sculpture" aria-hidden="true"')
@@ -117,6 +163,37 @@ class ArayuzTests(unittest.TestCase):
         app = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn('"/auth/forgot-password"', app)
         self.assertIn('"/auth/reset-password"', app)
+
+    def _panel(self, ad):
+        """index.html'den bir giris penceresi panelinin HTML'i (bir sonraki panele kadar)."""
+        bas = self.html.index(f'id="auth-panel-{ad}"')
+        son = self.html.find('id="auth-panel-', bas + 10)
+        return self.html[bas:son if son > 0 else len(self.html)]
+
+    def test_kayit_ve_giris_ayri_ekranlar(self):
+        """Giris paneli yalnizca e-posta + parola ister; kayit paneli ad soyad ve parola tekrarini da ister."""
+        giris, kayit = self._panel("login"), self._panel("register")
+        self.assertIn('id="auth-form"', giris)
+        self.assertNotIn("btn-register", giris, "kayit dugmesi giris formunda olmamali")
+        for kimlik in ("register-form", "reg-name", "reg-email", "reg-password", "reg-password2", "btn-register"):
+            self.assertIn(f'id="{kimlik}"', kayit)
+        self.assertIn('autocomplete="name"', kayit)
+        self.assertIn('data-auth-panel="register"', giris)      # "Hesabin yok mu? Kayit ol"
+        self.assertIn('data-auth-panel="login"', kayit)         # "Zaten hesabin var mi? Giris yap"
+        self.assertIn('data-open-auth="register"', self.html)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn("full_name", app)
+        self.assertIn("Parolalar birbirini tutmuyor", app)
+
+    def test_e_posta_dogrulama_arayuzu(self):
+        dogrulama = self._panel("verify")
+        for kimlik in ("verify-form", "verify-code", "btn-verify", "btn-resend", "verify-email-text"):
+            self.assertIn(f'id="{kimlik}"', dogrulama)
+        self.assertIn('autocomplete="one-time-code"', dogrulama)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn('"/auth/verify-email"', app)
+        self.assertIn('"/auth/resend-verification"', app)
+        self.assertIn("e.status === 403", app)                   # girişte doğrulanmamış hesap -> kod paneli
 
     def test_yukle_dugmesi_dosya_secilene_kadar_pasif(self):
         self.assertRegex(self.html, r'<button type="submit" id="upload-btn"[^>]*\sdisabled')

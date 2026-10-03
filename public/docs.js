@@ -31,14 +31,41 @@
     } catch (e) { /* sinir okunamazsa sunucu yine de denetler */ }
   }
 
+  let allDocs = [];                                   // sunucudan gelen son liste; suzme/siralama bunun ustunde
+
   async function loadDocs() {
     loadLimits();
     const body = document.querySelector("#docs-table tbody");
     if (!body.children.length) skeleton(body, 6);
-    let docs;
-    try { docs = await P55.request("/documents"); } catch (e) { body.replaceChildren(); P55.show(e.message, true); return; }
+    try { allDocs = await P55.request("/documents"); } catch (e) { body.replaceChildren(); P55.show(e.message, true); return; }
+    renderDocs();
+  }
+
+  // Siralama olcutleri: her biri iki belgeyi karsilastiran bir fonksiyon (Array.sort icin)
+  const SORTS = {
+    new: (a, b) => b.id - a.id,
+    old: (a, b) => a.id - b.id,
+    name: (a, b) => a.filename.localeCompare(b.filename, "tr"),
+    size: (a, b) => b.size_bytes - a.size_bytes,
+    chunks: (a, b) => b.chunk_count - a.chunk_count,
+  };
+
+  // Turkce harf duyarsiz arama: "YÖNET", "yonet", "Yönet" hepsi "yonetmelik.pdf"i bulur
+  const fold = (t) => t.toLocaleLowerCase("tr").replace(/[çğıöşü]/g, (c) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[c]);
+
+  function renderDocs() {
+    const body = document.querySelector("#docs-table tbody");
+    const raw = document.getElementById("docs-filter").value.trim(), q = fold(raw);
+    const sort = SORTS[document.getElementById("docs-sort").value] || SORTS.new;
+    const docs = allDocs.filter(d => !q || fold(d.filename).includes(q)).sort(sort);
     body.replaceChildren();
-    document.getElementById("docs-empty").hidden = docs.length > 0;
+    const empty = document.getElementById("docs-empty");
+    empty.hidden = docs.length > 0;
+    empty.textContent = allDocs.length ? "“" + raw + "” adında belge yok." : "Henüz belge yüklemedin. Yukarıdaki alana bir dosya bırakarak başla.";
+    const chunks = allDocs.reduce((s, d) => s + (d.chunk_count || 0), 0);
+    const bytes = allDocs.reduce((s, d) => s + (d.size_bytes || 0), 0);
+    document.getElementById("docs-summary").textContent = allDocs.length
+      ? (q ? docs.length + " / " : "") + allDocs.length + " belge · " + chunks + " parça · " + fmtSize(bytes) : "";
     for (const d of docs) {
       const status = el("span", { class: "badge " + d.status }, STATUS_TR[d.status] || d.status);
       const actions = el("span", {});
@@ -198,4 +225,6 @@
   P55.tabs.search = {};
   bindUpload();
   bindSearch();
+  document.getElementById("docs-filter").addEventListener("input", renderDocs);    // her tus vurusunda suz
+  document.getElementById("docs-sort").addEventListener("change", renderDocs);
 })();

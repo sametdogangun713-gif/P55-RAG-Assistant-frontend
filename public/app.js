@@ -68,7 +68,11 @@ const P55 = {
     }
     const type = res.headers.get("content-type") || "";
     const data = type.includes("application/json") ? await res.json() : await res.text();
-    if (!res.ok) throw new Error(P55.errorText(data && data.detail));
+    if (!res.ok) {
+      const err = new Error(P55.errorText(data && data.detail));
+      err.status = res.status;                      // or. girişte 403 = e-posta doğrulanmamış
+      throw err;
+    }
     return data;
   },
 
@@ -117,10 +121,17 @@ const P55 = {
     P55.user = await P55.request("/auth/me");
     P55.closeAuth();
     P55.setLoggedIn(true);
-    document.getElementById("whoami").textContent = P55.user.email + (P55.user.role === "admin" ? " (yönetici)" : "");
-    document.getElementById("avatar").textContent = (P55.user.email || "?").charAt(0).toUpperCase();
+    P55.showUser();
     P55.applyRole();
     P55.setTab("docs");
+  },
+
+  // Ust bardaki kullanici kutusu: ad (yoksa e-posta) ve bas harf. Hesabim'da ad degisince de cagrilir.
+  showUser() {
+    const name = P55.user.full_name || P55.user.email;        // eski hesaplarda ad bos olabilir
+    document.getElementById("whoami").textContent = name + (P55.user.role === "admin" ? " (yönetici)" : "");
+    document.getElementById("whoami").title = P55.user.email;
+    document.getElementById("avatar").textContent = (name || "?").charAt(0).toLocaleUpperCase("tr-TR");
   },
 
   applyRole() {
@@ -143,16 +154,18 @@ const P55 = {
     document.getElementById("home-view").hidden = on;
     document.getElementById("site-nav").hidden = on;
     document.getElementById("header-login").hidden = on;
+    document.getElementById("header-register").hidden = on;
     document.getElementById("app-view").hidden = !on;
     document.getElementById("userbox").hidden = !on;
     if (on) scrollTo(0, 0);
   },
 
-  /* ---- Giris penceresi: giris/kayit, "Sifremi unuttum", "Yeni parola" panelleri ---- */
+  /* ---- Giris penceresi: "Giris", "Kayit", "E-posta dogrulama", "Sifremi unuttum", "Yeni parola" panelleri ---- */
   setAuthPanel(name) {
     document.querySelectorAll(".auth-panel").forEach(p => { p.hidden = p.id !== "auth-panel-" + name; });
     const dialog = document.getElementById("auth-dialog");
-    dialog.setAttribute("aria-labelledby", { login: "auth-title", forgot: "forgot-title", reset: "reset-title" }[name]);
+    dialog.setAttribute("aria-labelledby", { login: "auth-title", register: "register-title", verify: "verify-title",
+                                              forgot: "forgot-title", reset: "reset-title" }[name]);
     P55.show("");
     const first = document.querySelector("#auth-panel-" + name + " input");
     if (first && dialog.open) first.focus();
@@ -167,6 +180,15 @@ const P55 = {
   closeAuth() {
     const dialog = document.getElementById("auth-dialog");
     if (dialog.open) dialog.close();
+  },
+
+  // Dogrulama paneline gec: hangi e-postanin dogrulanacagi saklanir (kod ve "yeniden gonder" ona gider).
+  verifyEmail: "",
+  goVerify(address) {
+    P55.verifyEmail = address;
+    document.getElementById("verify-email-text").textContent = address;
+    document.getElementById("verify-code").value = "";
+    P55.openAuth("verify");
   },
 
   setTab(name) {
@@ -205,6 +227,29 @@ const P55 = {
     try { localStorage.setItem("p55_theme", root.dataset.theme); } catch (e) { /* gizli pencere: tema yalnizca bu oturumda */ }
   },
 
+  /* Animasyonlar acik mi? Varsayilan: isletim sisteminin "hareketi azalt" ayari. Dugmeye basilinca kullanicinin
+     secimi (data-motion="on"/"off") onu ezer ve hatirlanir. fx.js ve cinema.js "p55:motion" olayini dinler. */
+  osReducedMotion: matchMedia("(prefers-reduced-motion: reduce)"),
+  motionReduced() {
+    const m = document.documentElement.dataset.motion;
+    return m === "off" || (m !== "on" && P55.osReducedMotion.matches);
+  },
+  syncMotionButton() {
+    const off = P55.motionReduced();
+    document.documentElement.classList.toggle("motion-reduced", off);
+    const btn = document.getElementById("motion-toggle");
+    btn.setAttribute("aria-pressed", String(!off));
+    btn.title = off ? "Animasyonlar kapalı — açmak için tıkla" : "Animasyonlar açık — kapatmak için tıkla";
+  },
+  toggleMotion() {
+    const root = document.documentElement;
+    root.dataset.motion = P55.motionReduced() ? "on" : "off";
+    try { localStorage.setItem("p55_motion", root.dataset.motion); } catch (e) { /* yalnizca bu oturumda */ }
+    P55.syncMotionButton();
+    dispatchEvent(new Event("p55:motion"));
+    P55.show(root.dataset.motion === "on" ? "Animasyonlar açıldı" : "Animasyonlar kapatıldı");
+  },
+
   async start() {
     const email = document.getElementById("email");
     const password = document.getElementById("password");
@@ -219,22 +264,71 @@ const P55 = {
         password.value = "";
         P55.show("");
         await P55.afterLogin(out.access_token);
-      } catch (e) { P55.show(e.message, true); }
+      } catch (e) {
+        if (e.status === 403) {                     // parola dogru ama e-posta dogrulanmamis -> kodu girsin
+          P55.goVerify(email.value.trim());
+          P55.show(e.message, "info");
+        } else P55.show(e.message, true);
+      }
       P55.setBusy(btn, false);
     });
 
-    document.getElementById("btn-register").addEventListener("click", async () => {
+    // Kayit: ad soyad + e-posta + parola (iki kez). Sunucu e-postaya 6 haneli kod gonderir -> dogrulama paneli.
+    document.getElementById("register-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
       const btn = document.getElementById("btn-register");
+      const regPw = document.getElementById("reg-password");
+      const regPw2 = document.getElementById("reg-password2");
+      if (regPw.value !== regPw2.value) {           // yazim hatasiyla bilinmeyen bir parola belirlenmesin
+        P55.show("Parolalar birbirini tutmuyor", true);
+        regPw2.focus();
+        return;
+      }
+      const body = { full_name: document.getElementById("reg-name").value.trim(),
+                     email: document.getElementById("reg-email").value.trim(), password: regPw.value };
       P55.setBusy(btn, true);
       try {
-        await P55.request("/auth/register", { method: "POST", json: creds() });
-        P55.show("Kayıt başarılı, şimdi giriş yapabilirsin.");
+        const out = await P55.request("/auth/register", { method: "POST", json: body });
+        regPw.value = regPw2.value = "";
+        if (out.verification_required) {
+          P55.goVerify(out.email);
+          P55.show(out.detail, "info");
+        } else {                                    // dogrulama kapaliysa (SMTP'siz deneme) dogrudan girise
+          email.value = out.email;
+          P55.setAuthPanel("login");
+          P55.show(out.detail);
+        }
       } catch (e) { P55.show(e.message, true); }
       P55.setBusy(btn, false);
     });
 
-    // Giris penceresini acan/kapatan dugmeler
-    document.querySelectorAll("[data-open-auth]").forEach(b => b.addEventListener("click", () => P55.openAuth("login")));
+    // E-posta dogrulama: dogru kod girilince sunucu oturum anahtari doner, kullanici dogrudan iceri girer.
+    document.getElementById("verify-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const btn = document.getElementById("btn-verify");
+      P55.setBusy(btn, true);
+      try {
+        const out = await P55.request("/auth/verify-email", { method: "POST",
+          json: { email: P55.verifyEmail, code: document.getElementById("verify-code").value.trim() } });
+        password.value = "";
+        await P55.afterLogin(out.access_token);
+        P55.show("E-postan doğrulandı, hoş geldin " + (out.user.full_name || "") + "!");
+      } catch (e) { P55.show(e.message, true); }
+      P55.setBusy(btn, false);
+    });
+
+    document.getElementById("btn-resend").addEventListener("click", async () => {
+      const btn = document.getElementById("btn-resend");
+      P55.setBusy(btn, true);
+      try {
+        const out = await P55.request("/auth/resend-verification", { method: "POST", json: { email: P55.verifyEmail } });
+        P55.show(out.detail, "info");
+      } catch (e) { P55.show(e.message, true); }
+      P55.setBusy(btn, false);
+    });
+
+    // Giris penceresini acan/kapatan dugmeler. data-open-auth="register" kayit panelini, bos/"login" girisi acar.
+    document.querySelectorAll("[data-open-auth]").forEach(b => b.addEventListener("click", () => P55.openAuth(b.dataset.openAuth || "login")));
     document.querySelectorAll("[data-auth-panel]").forEach(b => b.addEventListener("click", () => {
       if (b.dataset.authPanel === "forgot" && email.value) document.getElementById("forgot-email").value = email.value;
       P55.setAuthPanel(b.dataset.authPanel);
@@ -279,14 +373,18 @@ const P55 = {
 
     document.getElementById("logout").addEventListener("click", () => P55.logout());
     document.getElementById("theme-toggle").addEventListener("click", P55.toggleTheme);
+    document.getElementById("motion-toggle").addEventListener("click", P55.toggleMotion);
+    P55.osReducedMotion.addEventListener("change", () => { P55.syncMotionButton(); dispatchEvent(new Event("p55:motion")); });
+    P55.syncMotionButton();
 
-    const pwToggle = document.getElementById("pw-toggle");
-    pwToggle.addEventListener("click", () => {
-      const show = password.type === "password";
-      password.type = show ? "text" : "password";
-      pwToggle.textContent = show ? "Gizle" : "Göster";
-      pwToggle.setAttribute("aria-pressed", String(show));
-    });
+    // "Goster/Gizle": her dugme aria-controls ile bagli oldugu parola kutusunu degistirir (giris ve kayit)
+    document.querySelectorAll("[data-pw-toggle]").forEach(t => t.addEventListener("click", () => {
+      const input = document.getElementById(t.getAttribute("aria-controls"));
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      t.textContent = show ? "Gizle" : "Göster";
+      t.setAttribute("aria-pressed", String(show));
+    }));
 
     const tabButtons = () => [...document.querySelectorAll("#tabs button")].filter(b => !b.hidden);
     document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => P55.setTab(b.dataset.tab)));
