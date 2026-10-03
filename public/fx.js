@@ -1,12 +1,19 @@
 "use strict";
 /* Gorsel efekt katmani (Hafta 14, "mimari bosluk" temasi). Uygulamanin isleyisine KARISMAZ: bu dosya hic
    yuklenmese ya da hata verse de giris, yukleme, sohbet... aynen calisir (asamali iyilestirme).
-   Dis kutuphane (GSAP / Three.js / Lenis) bilerek kullanilmadi: sunucu internetsiz calisabilmeli ve her satir
-   aciklanabilmeli. Isletim sisteminde "hareketi azalt" aciksa surekli animasyonlar ve ozel imlec kapanir.
+   Bu dosyada dis kutuphane yok. Ana sayfadaki 3B sinematik sahne ayri dosyada (cinema.js, Three.js); o calisinca
+   buradaki 2B heykel kendini durdurur, calismazsa (WebGL yok) yedek olarak 2B heykel gorunur. Isletim sisteminde "hareketi azalt" aciksa surekli animasyonlar ve ozel imlec kapanir.
    GUVENLIK: metinler yalnizca textContent / createElement ile yazilir (innerHTML yok). */
 (function () {
   const root = document.documentElement;
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  // "Hareketi azalt": varsayilan isletim sistemi ayaridir (Windows: Erisilebilirlik > Gorsel efektler > Animasyon
+  // efektleri). Ust bardaki "Animasyonlar" dugmesi (html data-motion="on"/"off") bu ayari ezer; degisince
+  // app.js "p55:motion" olayini yayar. matchMedia ile ayni bicimde (.matches, addEventListener) kullanilir.
+  const osReduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = {
+    get matches() { const m = root.dataset.motion; return m === "off" || (m !== "on" && osReduced.matches); },
+    addEventListener(type, fn) { osReduced.addEventListener(type, fn); addEventListener("p55:motion", fn); },
+  };
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -161,10 +168,10 @@
     }
 
     // Dongu yalnizca heykel ekrandaysa ve sekme gorunurse calisir (pil / islemci tasarrufu)
-    let running = false, visible = true, raf = 0;
+    let running = false, visible = true, raf = 0, replaced = false;
     const loop = (now) => { draw(now); raf = running ? requestAnimationFrame(loop) : 0; };
     function setRunning() {
-      const should = visible && !document.hidden && !reduced.matches;
+      const should = visible && !document.hidden && !reduced.matches && !replaced;
       if (should && !running) { running = true; raf = requestAnimationFrame(loop); }
       if (!should && running) { running = false; cancelAnimationFrame(raf); }
     }
@@ -176,6 +183,8 @@
     new IntersectionObserver(([e]) => { visible = e.isIntersecting; setRunning(); }).observe(canvas);
     document.addEventListener("visibilitychange", setRunning);
     reduced.addEventListener("change", () => { setRunning(); draw(performance.now()); });
+    // 3B sahne (cinema.js) basariyla acildi: 2B heykel artik gorunmuyor, bosuna cizmesin
+    addEventListener("p55:cinema", () => { replaced = true; setRunning(); }, { once: true });
 
     // Mekan ve isik paneli: kaydiricilar heykeli ve arka plandaki isik cubuklarini (--light) etkiler
     for (const input of [light, depth]) {
@@ -193,7 +202,16 @@
 
   /* 3) Ozel imlec, miknatisli dugmeler, kartlarda 3B egim. Yalnizca fare kullanan cihazlarda (dokunmatikte yok). */
   function pointerFx() {
-    if (!finePointer.matches || reduced.matches) return;
+    if (!finePointer.matches) return;
+    let started = false;
+    const begin = () => {
+      if (!started && !reduced.matches) { started = true; cursorSetup(); }
+      root.classList.toggle("has-cursor", started && !reduced.matches);   // animasyon kapaninca normal imlec
+    };
+    begin();
+    reduced.addEventListener("change", begin);
+  }
+  function cursorSetup() {
     const dot = document.createElement("div"), ring = document.createElement("div");
     dot.className = "cursor-dot"; ring.className = "cursor-ring";
     dot.setAttribute("aria-hidden", "true"); ring.setAttribute("aria-hidden", "true");
@@ -211,7 +229,7 @@
     const release = (el) => { if (el) el.style.translate = ""; };
 
     addEventListener("pointermove", (ev) => {
-      if (ev.pointerType !== "mouse") return;
+      if (ev.pointerType !== "mouse" || reduced.matches) return;
       mx = ev.clientX; my = ev.clientY;
       root.classList.add("cursor-on");
       if (!raf) raf = requestAnimationFrame(follow);
@@ -245,10 +263,10 @@
 
   /* 4) Paralaks: kaydirma miktari CSS degiskenine (--sy) yazilir; katmanlar farkli hizla akar (style.css). */
   function scrollFx() {
-    if (reduced.matches) return;
     let queued = false;
-    const update = () => { queued = false; root.style.setProperty("--sy", String(Math.round(scrollY))); };
+    const update = () => { queued = false; root.style.setProperty("--sy", reduced.matches ? "0" : String(Math.round(scrollY))); };
     addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    reduced.addEventListener("change", update);
     update();
   }
 
