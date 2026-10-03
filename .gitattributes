@@ -1,0 +1,2 @@
+# Windows komut dosyalari CRLF satir sonuyla kalmali (LF ile "goto"/etiketler bozulabilir)
+*.bat text eol=crlf

@@ -1,0 +1,8 @@
+# Editor / isletim sistemi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+__pycache__/
+# Vercel CLI'nin yerel klasoru
+.vercel/
