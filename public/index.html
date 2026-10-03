@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#070707">
+  <title>P55 - Belge Soru-Cevap Asistanı</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23070707'/%3E%3Cpath d='M20 7l12 7v13l-12 6-12-6V14zM20 7v13M8 14l12 6 12-6M20 20v13' fill='none' stroke='%23f8f8fa' stroke-width='1.6'/%3E%3Ccircle cx='20' cy='20' r='2.6' fill='%23e5c07b'/%3E%3C/svg%3E">
+  <!-- Yazi tipleri: internet yoksa sistem yazi tiplerine duser, arayuz yine calisir -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css?v=18">
+  <!-- Tema, sayfa cizilmeden once uygulanir (acik/koyu arasinda yanip sonme olmasin) -->
+  <script>try { const t = localStorage.getItem("p55_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body>
+  <!-- Arka plan: perspektifli tavan kafesi, isik cubuklari ve beton dokusu (yalnizca susleme) -->
+  <div class="void" aria-hidden="true">
+    <div class="lattice"></div>
+    <span class="beam"></span><span class="beam"></span><span class="beam"></span>
+    <div class="grain"></div>
+  </div>
+
+  <header id="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect class="frame" x=".5" y=".5" width="39" height="39"/>
+        <path class="cube" d="M20 7l12 7v13l-12 6-12-6V14zM20 7v13M8 14l12 6 12-6M20 20v13"/>
+        <circle class="dot" cx="20" cy="20" r="2.4"/>
+      </svg>
+      <h1><small>P55 / RAG — 2026</small> Belge Soru-Cevap Asistanı</h1>
+    </div>
+    <nav id="site-nav" class="site-nav" aria-label="Ana sayfa bölümleri">
+      <a href="#proje">Proje</a>
+      <a href="#nasil">Nasıl çalışır</a>
+      <a href="#gelistirici">Geliştirici</a>
+    </nav>
+    <div class="header-actions">
+      <button id="header-login" type="button" data-open-auth>Giriş yap</button>
+      <div id="userbox" hidden>
+        <span class="avatar" id="avatar" aria-hidden="true"></span>
+        <span id="whoami"></span>
+        <button id="logout" type="button" class="secondary">Çıkış</button>
+      </div>
+      <button id="theme-toggle" type="button" class="icon-btn" aria-label="Koyu / açık tema">
+        <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Ana sayfa (giris yapilmamisken). Giris formu sayfanin altindaki <dialog> penceresinde, dugmeyle acilir. -->
+    <div id="home-view">
+      <section class="hero" aria-labelledby="hero-title">
+        <canvas id="sculpture" aria-hidden="true"></canvas>
+        <div class="hero-meta mono" aria-hidden="true">
+          <span>FIG. 01 — Tel kafes ışık heykeli</span>
+          <span>İkosahedron · 12 köşe · 30 kenar</span>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow mono"><span>00</span> Belge tabanlı soru-cevap · RAG</p>
+          <h2 class="hero-title" id="hero-title" data-split>
+            <span class="line">Belgelerine</span>
+            <span class="line">sor //</span>
+            <span class="line">kaynağıyla</span>
+            <span class="line">yanıt al.</span>
+          </h2>
+          <p class="hero-lead">Ders notlarını, yönetmelikleri, raporları yükle; sorunu Türkçe sor. Asistan yalnızca senin belgelerine dayanarak yanıt verir ve her bilginin kaynağını gösterir.</p>
+          <div class="hero-cta">
+            <button type="button" data-open-auth data-magnetic>Giriş yap / Kayıt ol</button>
+            <a href="#nasil" class="btn-ghost">Nasıl çalışır ↓</a>
+          </div>
+          <div class="spatial mono">
+            <div>
+              <label for="fx-light">Işık yoğunluğu <output id="fx-light-out" for="fx-light">70</output></label>
+              <input id="fx-light" type="range" min="0" max="100" value="70">
+            </div>
+            <div>
+              <label for="fx-depth">Perspektif <output id="fx-depth-out" for="fx-depth">50</output></label>
+              <input id="fx-depth" type="range" min="0" max="100" value="50">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="proje" class="home-section" aria-labelledby="proje-title">
+        <p class="eyebrow mono"><span>01</span> Proje</p>
+        <h2 id="proje-title" data-split>Bu proje ne işe yarar?</h2>
+        <p class="section-lead">Uzun belgelerde aradığını bulmak zaman alır; genel sohbet robotları ise bilmediği konuda uydurabilir. P55 bu iki sorunu birlikte çözmek için yapıldı: yanıtı <strong>yalnızca senin yüklediğin belgelerden</strong> üretir, her cümlenin hangi parçaya dayandığını gösterir, belgede olmayan bir şey sorulursa “belgede yok” der.</p>
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="feature-no mono">A</span>
+            <h3>Kaynaklı yanıt</h3>
+            <p>Yanıttaki her bilgi <span class="mono">[1]</span>, <span class="mono">[2]</span> gibi alıntılarla belgedeki parçaya bağlanır; açıp kaynağı okuyabilirsin.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-no mono">B</span>
+            <h3>Uydurmaz</h3>
+            <p>İlgili parça bulunamazsa ya da model geçerli kaynak göstermezse yanıt verilmez. “Belgede yok” demek uydurmaktan iyidir.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-no mono">C</span>
+            <h3>Belgen sende kalır</h3>
+            <p>Belgeler ve vektörler kendi sunucunda (SQLite) saklanır; anlam araması ücretsiz, yerel bir modelle yapılır.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="nasil" class="home-section" aria-labelledby="nasil-title">
+        <p class="eyebrow mono"><span>02</span> Nasıl çalışır</p>
+        <h2 id="nasil-title" data-split>Dört adımda kaynaklı yanıt</h2>
+        <ol class="steps">
+          <li><span class="step-no mono">01</span><h3>Yükle</h3><p>TXT, PDF ya da DOCX belgeni sürükleyip bırak.</p></li>
+          <li><span class="step-no mono">02</span><h3>Parçala ve vektörleştir</h3><p>Metin ~600 karakterlik parçalara bölünür; çok dilli yerel model her parçayı bir anlam vektörüne çevirir.</p></li>
+          <li><span class="step-no mono">03</span><h3>Sor</h3><p>Sorun da vektöre çevrilir; anlamca en yakın parçalar bulunur (aynı kelimeyi kullanman şart değil).</p></li>
+          <li><span class="step-no mono">04</span><h3>Kaynaklı yanıt</h3><p>Dil modeli yalnızca bu parçalarla yanıt yazar; alıntılar sunucuda doğrulanır.</p></li>
+        </ol>
+      </section>
+
+      <section id="gelistirici" class="home-section" aria-labelledby="gelistirici-title">
+        <p class="eyebrow mono"><span>03</span> Geliştirici</p>
+        <h2 id="gelistirici-title" data-split>Kim yaptı?</h2>
+        <div class="about-grid">
+          <article class="person">
+            <span class="person-mark" aria-hidden="true">SD</span>
+            <div>
+              <h3 class="person-name">Samet DOĞANGÜN</h3>
+              <p>Bingöl Üniversitesi · Bilgisayar Programcılığı</p>
+            </div>
+          </article>
+          <dl class="facts">
+            <div><dt class="mono">Ders</dt><dd>Bilgisayar Uygulamaları I (proje tabanlı)</dd></div>
+            <div><dt class="mono">Öğretim elemanı</dt><dd>Öğr. Gör. Mustafa NARİN</dd></div>
+            <div><dt class="mono">Proje</dt><dd>P55 — Belge Tabanlı Soru-Cevap Asistanı · 2026</dd></div>
+            <div><dt class="mono">Teknolojiler</dt><dd>Python · FastAPI · SQLite · sentence-transformers · Groq / Claude API · HTML, CSS, JavaScript</dd></div>
+            <div><dt class="mono">Kaynak kod</dt><dd><a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-backend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-backend</a> · <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-frontend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-frontend</a></dd></div>
+          </dl>
+        </div>
+        <p class="ai-note">Geliştirmede yapay zekâ “eş programcı” olarak kullanıldı; her haftanın kullanım günlüğü depoda <span class="mono">hafta-XX/ai-log.md</span> dosyasındadır.</p>
+      </section>
+
+      <section class="home-cta" aria-label="Başla">
+        <p data-split>Belgeni yükle, ilk sorunu sor.</p>
+        <button type="button" data-open-auth data-magnetic>Hemen başla</button>
+      </section>
+    </div>
+
+    <section id="app-view" hidden>
+      <nav id="tabs" role="tablist" aria-label="Bölümler">
+        <span id="tab-indicator" aria-hidden="true"></span>
+        <button type="button" role="tab" id="tabbtn-docs" aria-controls="tab-docs" data-tab="docs" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg><span>Belgelerim</span></button>
+        <button type="button" role="tab" id="tabbtn-chat" aria-controls="tab-chat" data-tab="chat" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>Sohbet</span></button>
+        <button type="button" role="tab" id="tabbtn-search" aria-controls="tab-search" data-tab="search" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Arama</span></button>
+        <button type="button" role="tab" id="tabbtn-report" aria-controls="tab-report" data-tab="report" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Rapor</span></button>
+        <button type="button" role="tab" id="tabbtn-admin" aria-controls="tab-admin" data-tab="admin" aria-selected="false" data-admin-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Yönetim</span></button>
+      </nav>
+
+      <div id="tab-docs" class="tab" role="tabpanel" aria-labelledby="tabbtn-docs">
+        <p class="eyebrow mono"><span>01</span> Belgelerim</p>
+        <h2 data-split>Belge yükle</h2>
+        <form id="upload-form">
+          <label for="file" class="dropzone" id="dropzone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.5-9.97A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9"/><path d="M12 12v8M9 15l3-3 3 3"/></svg>
+            <span><strong>Dosyayı buraya sürükle</strong> ya da seçmek için tıkla</span>
+            <span id="upload-hint">TXT, PDF veya DOCX</span>
+            <span class="file-name" id="file-name" aria-live="polite"></span>
+          </label>
+          <input id="file" class="visually-hidden" type="file" accept=".txt,.pdf,.docx">
+          <div class="upload-actions">
+            <button type="submit" id="upload-btn" data-magnetic disabled>Yükle</button>
+            <div class="progress" id="upload-progress" hidden role="progressbar" aria-label="Yükleme ilerlemesi" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+            <span class="progress-text mono" id="upload-status" aria-live="polite"></span>
+          </div>
+        </form>
+        <h2 class="spaced" data-split>Belgelerim</h2>
+        <div class="table-wrap">
+          <table id="docs-table">
+            <thead><tr><th>Dosya</th><th>Durum</th><th>Parça</th><th>Boyut</th><th>Tarih</th><th><span class="visually-hidden">İşlemler</span></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="docs-empty" class="empty" hidden>Henüz belge yüklemedin. Yukarıdaki alana bir dosya bırakarak başla.</p>
+      </div>
+
+      <div id="tab-chat" class="tab" role="tabpanel" aria-labelledby="tabbtn-chat" hidden>
+        <div class="chat-layout">
+          <aside class="chat-side">
+            <p class="eyebrow mono"><span>02</span> Sohbet</p>
+            <button type="button" id="chat-new">+ Yeni sohbet</button>
+            <ul id="chat-list" aria-label="Sohbetler"></ul>
+          </aside>
+          <div class="chat-main">
+            <div id="chat-thread" aria-live="polite"></div>
+            <form id="chat-form">
+              <label for="chat-input">Belgelerinle ilgili bir soru sor</label>
+              <div class="composer">
+                <textarea id="chat-input" rows="2" maxlength="1000" required placeholder="Örn: Ödev teslim tarihi ne zaman?"></textarea>
+                <button type="submit" data-magnetic>Gönder</button>
+              </div>
+              <p class="hint mono">Enter: gönder · Shift+Enter: yeni satır</p>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-search" class="tab" role="tabpanel" aria-labelledby="tabbtn-search" hidden>
+        <p class="eyebrow mono"><span>03</span> Arama</p>
+        <h2 data-split>Belgelerde ara</h2>
+        <form id="search-form">
+          <label for="query">Ne arıyorsun?</label>
+          <div class="composer">
+            <input id="query" type="text" required maxlength="500" placeholder="Bir kelime ya da soru yaz">
+            <button type="submit" data-magnetic>Ara</button>
+          </div>
+        </form>
+        <div id="search-results"></div>
+      </div>
+
+      <div id="tab-report" class="tab" role="tabpanel" aria-labelledby="tabbtn-report" hidden>
+        <p class="eyebrow mono"><span>04</span> Rapor</p>
+        <h2 data-split>Kullanım ve kaynak raporu</h2>
+        <form id="report-form" class="row">
+          <div>
+            <label for="report-days">Dönem</label>
+            <select id="report-days">
+              <option value="7">Son 7 gün</option>
+              <option value="30" selected>Son 30 gün</option>
+              <option value="90">Son 90 gün</option>
+            </select>
+          </div>
+          <div id="report-scope-box" hidden>
+            <label for="report-scope">Kapsam</label>
+            <select id="report-scope">
+              <option value="me">Benim kullanımım</option>
+              <option value="all">Tüm sistem</option>
+            </select>
+          </div>
+          <button type="submit" data-magnetic>Göster</button>
+          <button type="button" id="report-csv" class="secondary">CSV indir</button>
+        </form>
+        <div id="report-body"></div>
+      </div>
+
+      <div id="tab-admin" class="tab" role="tabpanel" aria-labelledby="tabbtn-admin" hidden>
+        <p class="eyebrow mono"><span>05</span> Yönetim</p>
+        <h2 data-split>Kullanıcılar</h2>
+        <div class="table-wrap">
+          <table id="admin-users"><thead><tr><th>E-posta</th><th>Rol</th><th>Kayıt</th><th><span class="visually-hidden">İşlemler</span></th></tr></thead><tbody></tbody></table>
+        </div>
+        <h2 class="spaced" data-split>Tüm belgeler</h2>
+        <div class="table-wrap">
+          <table id="admin-docs"><thead><tr><th>Dosya</th><th>Sahibi</th><th>Durum</th><th>Parça</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <p class="manifesto" data-split>Kaynağı olmayan yanıt, yanıt değildir.</p>
+    <div class="foot-grid">
+      <div class="clocks">
+        <div><span class="mono">İstanbul</span><time data-tz="Europe/Istanbul">--:--:--</time></div>
+        <div><span class="mono">Tokyo</span><time data-tz="Asia/Tokyo">--:--:--</time></div>
+        <div><span class="mono">Berlin</span><time data-tz="Europe/Berlin">--:--:--</time></div>
+      </div>
+      <p class="foot-meta mono">P55 — Belge Tabanlı Soru-Cevap Asistanı<br>FastAPI · SQLite · yerel embedding</p>
+      <a href="#top" class="foot-cta" data-magnetic>Başa<br>dön ↑</a>
+    </div>
+  </footer>
+
+  <!-- Giris penceresi: <dialog> + showModal() -> arka plan tiklanamaz, odak pencerede kalir, Esc kapatir (tarayici yapar) -->
+  <dialog id="auth-dialog" aria-labelledby="auth-title">
+    <div class="auth-card">
+      <button type="button" id="auth-close" class="icon-btn dialog-close" aria-label="Pencereyi kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+
+      <div id="auth-panel-login" class="auth-panel">
+        <p class="eyebrow mono"><span>01</span> Giriş</p>
+        <h2 id="auth-title">Hoş geldin</h2>
+        <p class="lead">Giriş yap ya da yeni bir hesap oluştur.</p>
+        <form id="auth-form" autocomplete="on">
+          <label for="email">E-posta</label>
+          <input id="email" type="email" required autocomplete="username" placeholder="ad@example.com">
+          <label for="password">Parola (en az 8 karakter, harf + rakam)</label>
+          <div class="pw-wrap">
+            <input id="password" type="password" required autocomplete="current-password">
+            <button type="button" id="pw-toggle" class="pw-toggle" aria-pressed="false" aria-controls="password">Göster</button>
+          </div>
+          <button type="button" class="link-btn forgot-link" data-auth-panel="forgot">Şifremi unuttum</button>
+          <div class="row">
+            <button type="submit" id="btn-login" data-magnetic>Giriş yap</button>
+            <button type="button" id="btn-register" class="secondary" data-magnetic>Kayıt ol</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="auth-panel-forgot" class="auth-panel" hidden>
+        <p class="eyebrow mono"><span>02</span> Parola sıfırlama</p>
+        <h2 id="forgot-title">Şifremi unuttum</h2>
+        <p class="lead">Kayıtlı e-posta adresini yaz; sana 6 haneli bir sıfırlama kodu gönderelim.</p>
+        <form id="forgot-form">
+          <label for="forgot-email">E-posta</label>
+          <input id="forgot-email" type="email" required autocomplete="username" placeholder="ad@example.com">
+          <div class="row">
+            <button type="submit" id="btn-forgot" data-magnetic>Kod gönder</button>
+            <button type="button" class="secondary" data-auth-panel="login">Girişe dön</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="auth-panel-reset" class="auth-panel" hidden>
+        <p class="eyebrow mono"><span>03</span> Yeni parola</p>
+        <h2 id="reset-title">Kodu gir</h2>
+        <p class="lead"><strong id="reset-email-text"></strong> adresine gelen 6 haneli kodu ve yeni parolanı yaz. Kod 15 dakika geçerlidir.</p>
+        <form id="reset-form">
+          <label for="reset-code">Sıfırlama kodu</label>
+          <input id="reset-code" class="code-input" type="text" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+          <label for="reset-password">Yeni parola (en az 8 karakter, harf + rakam)</label>
+          <input id="reset-password" type="password" required minlength="8" autocomplete="new-password">
+          <div class="row">
+            <button type="submit" id="btn-reset" data-magnetic>Parolayı değiştir</button>
+            <button type="button" class="secondary" data-auth-panel="forgot">Kodu yeniden iste</button>
+          </div>
+        </form>
+      </div>
+      <!-- Pencere acikken bildirimler burada gorunur (sag alttaki kutu pencerenin arkasinda kalirdi) -->
+      <p id="auth-msg" class="auth-msg" role="status" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <div id="msg" role="status" aria-live="polite"></div>
+
+  <script src="config.js?v=18"></script>
+  <script src="app.js?v=18"></script>
+  <script src="docs.js?v=18"></script>
+  <script src="chat.js?v=18"></script>
+  <script src="report.js?v=18"></script>
+  <script src="admin.js?v=18"></script>
+  <script>P55.start();</script>
+  <script src="fx.js?v=18"></script>
+</body>
+</html>
