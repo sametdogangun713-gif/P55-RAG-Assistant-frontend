@@ -296,7 +296,8 @@
         <section id="tokens-card" class="account-card tokens-card" aria-labelledby="tokens-title">
           <h3 id="tokens-title">API anahtarları</h3>
           <p class="tokens-intro">Postman, bir betik ya da başka bir uygulama P55'e bu anahtarla bağlanır:
-            <code>Authorization: Bearer p55_…</code>. Anahtarı parolan gibi sakla; sızarsa hemen sil.</p>
+            <code>Authorization: Bearer p55_…</code>. Anahtarı parolan gibi sakla; sızarsa hemen sil.
+            Yeni anahtar oluşturulunca e-posta adresine bildirim gelir.</p>
           <form id="token-form" class="token-form">
             <div>
               <label for="token-name">Anahtar adı</label>
@@ -343,6 +344,13 @@
         <div class="table-wrap">
           <table id="admin-docs"><thead><tr><th>Dosya</th><th>Sahibi</th><th>Durum</th><th>Parça</th></tr></thead><tbody></tbody></table>
         </div>
+        <h2 class="spaced">API anahtarları</h2>
+        <p class="tokens-intro">Anahtarı yalnızca sahibi oluşturur ve yalnızca o görür. Burada anahtarın ilk 12 karakteri görünür;
+          sızan ya da şüpheli bir anahtarı iptal edebilirsin, sahibine e-postayla bildirilir.</p>
+        <div class="table-wrap">
+          <table id="admin-tokens"><thead><tr><th>Sahibi</th><th>Ad</th><th>Anahtar</th><th>Oluşturma</th><th>Son kullanım</th><th>Bitiş</th><th><span class="visually-hidden">İşlemler</span></th></tr></thead><tbody></tbody></table>
+        </div>
+        <p id="admin-tokens-empty" class="empty" hidden>Hiç API anahtarı yok.</p>
       </div>
     </section>
   </main>
@@ -460,7 +468,7 @@
   <script src="docs.js?v=35"></script>
   <script src="chat.js?v=35"></script>
   <script src="report.js?v=35"></script>
-  <script src="admin.js?v=35"></script>
+  <script src="admin.js?v=36"></script>
   <script src="account.js?v=35"></script>
   <script>P55.start();</script>
 </body>

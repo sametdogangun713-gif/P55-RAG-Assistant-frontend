@@ -122,6 +122,17 @@ class ArayuzTests(unittest.TestCase):
         app = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn("P55.hideTabs();", app)              # cikista
 
+    def test_yonetici_api_anahtarlarini_gorur_ve_iptal_eder(self):
+        """Yonetici anahtarlari listeler (yalnizca ilk 12 karakter) ve iptal eder; anahtar URETEMEZ."""
+        for kimlik in ("admin-tokens", "admin-tokens-empty"):
+            self.assertIn(f'id="{kimlik}"', self.html)
+        js = (STATIC / "admin.js").read_text(encoding="utf-8")
+        for parca in ('P55.request("/admin/tokens")', '"/admin/tokens/" + t.id, { method: "DELETE" }', 't.prefix + "…"',
+                      "confirm("):
+            self.assertIn(parca, js)
+        self.assertNotIn("t.token", js)                    # sunucu anahtarin kendisini zaten dondurmez
+        self.assertNotIn('method: "POST"', js)             # yonetici anahtar olusturamaz
+
     def test_belge_suzme_siralama_ve_sohbet_adlandirma(self):
         for kimlik in ("docs-filter", "docs-sort", "docs-summary"):
             self.assertIn(f'id="{kimlik}"', self.html)
