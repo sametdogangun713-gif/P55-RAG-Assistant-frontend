@@ -1,7 +1,7 @@
 "use strict";
 /* Arayuzun konusacagi backend (API) adresi.
    Bu dosyada GIZLI BILGI OLMAZ: tarayiciya giden her dosya herkes tarafindan okunabilir.
-   - Kendi bilgisayarinda (localhost): backend http://127.0.0.1:8000 adresinde calisir (P55-RAG-Assistant-backend\baslat.bat).
+   - Kendi bilgisayarinda (localhost): backend http://127.0.0.1:8000 adresinde calisir (uvicorn app.main:app; backend README).
    - Bulutta: backend Vercel'e yuklenince aldigi adresi asagidaki satira yaz. */
 window.P55_CONFIG = {
   apiBase: ["localhost", "127.0.0.1"].includes(location.hostname)

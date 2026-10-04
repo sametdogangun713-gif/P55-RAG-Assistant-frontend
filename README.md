@@ -26,9 +26,9 @@ vercel.json         Vercel ayarı: site public/ klasöründen sunulur + güvenli
 ```
 
 ## Yerelde çalıştırma
-1. Önce backend'i başlat (`P55-RAG-Assistant-backend\baslat.bat` → http://127.0.0.1:8000).
-2. Bu klasördeki **`baslat.bat`**'a çift tıkla → http://localhost:5500 açılır.
-   (Komutla: `python -m http.server 5500 --bind 127.0.0.1 --directory public`)
+1. Önce backend'i başlat (backend README'sindeki "Adım adım kurulum" → http://127.0.0.1:8000).
+2. Bu klasörde şu komutu çalıştır, sonra http://localhost:5500 adresini aç:
+   `python -m http.server 5500 --bind 127.0.0.1 --directory public`
 
 Arayüz `localhost`'ta açıldığında backend'i otomatik olarak `http://127.0.0.1:8000`'de arar (`public/config.js`).
 Backend, `http://localhost:5500`'e izin verecek şekilde ayarlıdır (`ALLOWED_ORIGINS`).
