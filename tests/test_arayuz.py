@@ -107,6 +107,21 @@ class ArayuzTests(unittest.TestCase):
         for parca in ('"/auth/me", { method: "PATCH"', '"/auth/change-password"', '"/auth/me", { method: "DELETE"', "confirm("):
             self.assertIn(parca, js)
 
+    def test_api_anahtarlari(self):
+        """Hesabim'da anahtar uretme/listeleme/silme. Anahtar yalnizca bir kez gosterilir, saklanmaz ve sekmeden
+        cikinca ya da oturum kapaninca ekrandan silinir."""
+        for kimlik in ("tokens-card", "token-form", "token-name", "token-days", "token-new", "token-value",
+                       "btn-token-copy", "tokens-table", "tokens-empty"):
+            self.assertIn(f'id="{kimlik}"', self.html)
+        js = (STATIC / "account.js").read_text(encoding="utf-8")
+        for parca in ('P55.request("/auth/tokens")', '"/auth/tokens", { method: "POST"', '"/auth/tokens/" + t.id, { method: "DELETE" }',
+                      "onHide: hideNewToken", "confirm("):
+            self.assertIn(parca, js)
+        self.assertNotIn("localStorage", js)
+        self.assertNotIn("sessionStorage", js)
+        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn("P55.hideTabs();", app)              # cikista
+
     def test_belge_suzme_siralama_ve_sohbet_adlandirma(self):
         for kimlik in ("docs-filter", "docs-sort", "docs-summary"):
             self.assertIn(f'id="{kimlik}"', self.html)

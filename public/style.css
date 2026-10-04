@@ -417,6 +417,14 @@ td button { padding: .35rem .7rem; font-size: .8rem; }
 .account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 .account-card { padding: 1.2rem 1.3rem; border: 1px solid var(--ink); background: var(--surface); }
 .account-card h3 { margin: 0 0 .4rem; }
+.tokens-card { margin-bottom: 1rem; }
+.tokens-intro { margin: 0; color: var(--muted); }
+.token-form { display: grid; grid-template-columns: minmax(0, 1fr) 10rem auto; gap: 0 .8rem; align-items: end; margin-bottom: 1rem; }
+.token-new { margin: 0 0 1rem; padding: .9rem 1rem; border: 1px solid var(--ink); background: var(--surface-2); }
+.token-new p { margin: 0 0 .6rem; }
+.token-copy { display: flex; gap: .6rem; align-items: center; }
+.token-copy code { flex: 1; min-width: 0; padding: .55rem .6rem; overflow-wrap: anywhere; user-select: all; }
+.tokens-card .expired { color: var(--bad); }
 .danger-zone { border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 .danger-zone h3 { color: var(--bad); }
 .danger-zone p { margin: 0 0 .5rem; color: var(--muted); }
@@ -447,6 +455,8 @@ td button { padding: .35rem .7rem; font-size: .8rem; }
   .auth-card { padding: 1.7rem 1.2rem 1.3rem; }
   .steps { grid-template-columns: minmax(0, 1fr); }
   .facts div { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
+  .token-form { grid-template-columns: minmax(0, 1fr); }
+  .token-copy { flex-direction: column; align-items: stretch; }
   .docs-tools { grid-template-columns: minmax(0, 1fr); }
   .docs-summary { white-space: normal; padding: 0; }
   .account-grid { grid-template-columns: minmax(0, 1fr); }

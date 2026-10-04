@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
   <!-- Tema, sayfa cizilmeden once uygulanir (acik/koyu arasinda yanip sonme olmasin). Secim yoksa isletim sistemi ayari. -->
   <script>try { const t = localStorage.getItem("p55_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
@@ -268,7 +268,7 @@
       <div id="tab-account" class="tab" role="tabpanel" aria-labelledby="tabbtn-account" hidden>
         <div class="tab-head">
           <h2>Hesap ayarları</h2>
-          <p>Adını ve parolanı değiştir ya da hesabını sil.</p>
+          <p>Adını ve parolanı değiştir, API anahtarlarını yönet ya da hesabını sil.</p>
         </div>
         <dl class="facts account-facts">
           <div><dt>E-posta</dt><dd id="acc-email"></dd></div>
@@ -293,6 +293,35 @@
             <div class="row"><button type="submit" id="btn-password">Parolayı değiştir</button></div>
           </form>
         </div>
+        <section id="tokens-card" class="account-card tokens-card" aria-labelledby="tokens-title">
+          <h3 id="tokens-title">API anahtarları</h3>
+          <p class="tokens-intro">Postman, bir betik ya da başka bir uygulama P55'e bu anahtarla bağlanır:
+            <code>Authorization: Bearer p55_…</code>. Anahtarı parolan gibi sakla; sızarsa hemen sil.</p>
+          <form id="token-form" class="token-form">
+            <div>
+              <label for="token-name">Anahtar adı</label>
+              <input id="token-name" type="text" required maxlength="60" placeholder="Örn. Postman" autocomplete="off">
+            </div>
+            <div>
+              <label for="token-days">Geçerlilik</label>
+              <select id="token-days">
+                <option value="7">7 gün</option>
+                <option value="30">30 gün</option>
+                <option value="90" selected>90 gün</option>
+                <option value="365">1 yıl</option>
+              </select>
+            </div>
+            <div class="row"><button type="submit" id="btn-token">Anahtar oluştur</button></div>
+          </form>
+          <div id="token-new" class="token-new" role="status" hidden>
+            <p><strong>Anahtarın hazır, şimdi kopyala.</strong> Bu sekmeden çıkınca bir daha gösterilmez.</p>
+            <div class="token-copy"><code id="token-value"></code><button type="button" id="btn-token-copy">Kopyala</button></div>
+          </div>
+          <div class="table-wrap">
+            <table id="tokens-table"><thead><tr><th>Ad</th><th>Anahtar</th><th>Oluşturma</th><th>Son kullanım</th><th>Bitiş</th><th><span class="visually-hidden">İşlemler</span></th></tr></thead><tbody></tbody></table>
+          </div>
+          <p id="tokens-empty" class="empty" hidden>Henüz API anahtarın yok.</p>
+        </section>
         <form id="delete-account-form" class="account-card danger-zone">
           <h3>Hesabı sil</h3>
           <p>Hesabın, yüklediğin belgeler, dosyalar ve sohbetlerin <strong>kalıcı olarak</strong> silinir. Bu işlem geri alınamaz.</p>
@@ -426,13 +455,13 @@
 
   <div id="msg" role="status" aria-live="polite"></div>
 
-  <script src="config.js?v=34"></script>
-  <script src="app.js?v=34"></script>
-  <script src="docs.js?v=34"></script>
-  <script src="chat.js?v=34"></script>
-  <script src="report.js?v=34"></script>
-  <script src="admin.js?v=34"></script>
-  <script src="account.js?v=34"></script>
+  <script src="config.js?v=35"></script>
+  <script src="app.js?v=35"></script>
+  <script src="docs.js?v=35"></script>
+  <script src="chat.js?v=35"></script>
+  <script src="report.js?v=35"></script>
+  <script src="admin.js?v=35"></script>
+  <script src="account.js?v=35"></script>
   <script>P55.start();</script>
 </body>
 </html>

@@ -146,6 +146,7 @@ const P55 = {
     P55.token = null;
     P55.user = null;
     sessionStorage.removeItem("p55_token");
+    P55.hideTabs();
     P55.setLoggedIn(false);
     P55.applyRole();
     if (message) P55.openAuth("login");             // oturum dolduysa giris penceresi kendiliginden acilir
@@ -194,6 +195,11 @@ const P55 = {
     P55.openAuth("verify");
   },
 
+  // Gorunmez olan sekmelere haber ver (or. Hesabim yeni API anahtarini ekrandan siler). except: acik kalan sekme
+  hideTabs(except) {
+    for (const [n, t] of Object.entries(P55.tabs)) if (n !== except && t.onHide) t.onHide();
+  },
+
   setTab(name) {
     document.querySelectorAll("#tabs button").forEach(b => {
       const selected = b.dataset.tab === name;
@@ -201,6 +207,7 @@ const P55 = {
       b.tabIndex = selected ? 0 : -1;               // klavyede sekme listesine tek duraktan girilir, oklarla gezilir
     });
     document.querySelectorAll(".tab").forEach(t => { t.hidden = t.id !== "tab-" + name; });
+    P55.hideTabs(name);
     const tab = P55.tabs[name];
     if (tab && tab.onShow) tab.onShow();
   },
