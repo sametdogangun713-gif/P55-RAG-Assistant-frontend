@@ -39,10 +39,28 @@ class ArayuzTests(unittest.TestCase):
                                              'src="vendor/SplitText.min.js', 'src="home.js', "App.start();")]
         self.assertEqual(sira, sorted(sira))
         self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
-        for kalinti in ("<canvas", "fx.js", "cinema.js", "three"):            # eski 3B sahne geri gelmesin
+        for kalinti in ("fx.js", "cinema.js"):                 # eski sahne dosyalari geri gelmesin
             self.assertNotIn(kalinti, self.html)
         izinli = {"spin", "indet", "dot"}                     # yukleniyor, ilerleme cubugu, "yaziyor" noktalari
         self.assertEqual(set(re.findall(r"@keyframes\s+([\w-]+)", self.css)), izinli)
+
+    def test_studyo_3b_sahnesi_yerel_three_ile(self):
+        """3B studyo Three.js (ES modulu) ile; kutuphane depoda. Import haritasi "three" adini yerel dosyaya baglar
+        ve modul betiginden once gelir. WebGL ya da GSAP yoksa sahne yerine animasyonsuz metinler gorunur."""
+        three = STATIC / "vendor" / "three"
+        for ad in ("three.module.min.js", "three.core.js", "LICENSE", "addons/geometries/RoundedBoxGeometry.js",
+                   "addons/environments/RoomEnvironment.js"):
+            self.assertTrue((three / ad).is_file(), ad)
+        self.assertIn('from"./three.core.js"', (three / "three.module.min.js").read_text(encoding="utf-8"))
+        harita = re.search(r'<script type="importmap">(.*?)</script>', self.html, re.S)
+        self.assertIsNotNone(harita)
+        self.assertIn('"three": "./vendor/three/three.module.min.js', harita.group(1))
+        self.assertLess(harita.start(), self.html.index('<script type="module" src="studio.js'))
+        studio = (STATIC / "studio.js").read_text(encoding="utf-8")
+        for parca in ('from "three"', "webglAvailable()", 'classList.add("no-3d")', 'new Event("studio-ready")',
+                      "function start()", "function stop()", "pin: true", "scrub: 1"):
+            self.assertIn(parca, studio)
+        self.assertIn(".studio.no-3d #studio-canvas { display: none; }", self.css)
 
     def test_animasyon_dugmesi_ve_geri_alma(self):
         """Ust bardaki dugme animasyonlari kapatir; tercih hatirlanir; kapatinca her sey geri alinir (revert),
@@ -56,22 +74,26 @@ class ArayuzTests(unittest.TestCase):
             self.assertIn(parca, home)
 
     def test_ana_sayfa_animasyonsuz_hali_eksiksiz(self):
-        """Animasyon yokken de ornek ve sema okunur: metinler HTML'de yazili, gizleme yalnizca JS ile yapilir."""
-        for metin in ("Ödev teslim tarihi ne zaman?", "Madde 12.", "Kaynak: Madde 12", "anlam uzayı", ">[1]</text>", ">[3]</text>"):
+        """Animasyon yokken de ornek ve 5 sahne okunur: metinler HTML'de yazili, gizleme yalnizca JS ile yapilir;
+        canli olmayan studyoda sahneler alt alta dizilir."""
+        for metin in ("Ödev teslim tarihi ne zaman?", "Madde 12.", "Kaynak: Madde 12", "Belgen parçalara ayrılır.",
+                      "Her parça anlamına göre konumlanır.", "Soruna en yakın parçalar bulunur.", "Yanıt, kaynağıyla gelir."):
             self.assertIn(metin, self.html)
-        for kural in re.findall(r"#how-svg[^{]*\{[^}]*\}|\.demo[\w-]*[^{]*\{[^}]*\}", self.css):
+        self.assertEqual(self.html.count('class="scene"'), 5)
+        for kural in re.findall(r"\.(?:scene|studio|demo)[\w-]*[^{]*\{[^}]*\}", self.css):
             if kural.startswith((".demo-scan", ".demo-caret")):   # tarama cizgisi ve imlec yalnizca animasyonda gorunur
                 continue
             self.assertNotRegex(kural, r"visibility:\s*hidden|opacity:\s*0[;\s}]", kural)
+        self.assertIn(".studio:not(.is-live) .scene { position: static; }", self.css)
         self.assertIn("figcaption", self.html)                  # canli ornegin ekran okuyucu aciklamasi
-        self.assertIn('<title id="how-svg-title">', self.html)
+        self.assertIn('<section id="nasil" class="studio" aria-label="Nasıl çalışır">', self.html)
 
     def test_statik_dosyalar_var_ve_surumlu(self):
         """Her yerel CSS/JS baglantisi var olan bir dosyaya gider ve ?v= tasir (tarayici eskisini onbellekten
         getirmesin). Yollar goreli: site Vercel'de kok dizinden sunulur."""
         baglantilar = re.findall(r'(?:href|src)="([\w.-]+\.(?:js|css)\?v=\w+)"', self.html)
         adlar = {b.split("?")[0] for b in baglantilar}
-        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "home.js", "style.css"} <= adlar)
+        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "home.js", "studio.js", "style.css"} <= adlar)
         for ad in adlar:
             self.assertTrue((STATIC / ad).is_file(), ad)
         self.assertNotIn('"/static/', self.html)
