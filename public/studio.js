@@ -1,19 +1,19 @@
-/* Ana sayfa "studyo": tam ekran 3B sahne (Three.js) + kaydirdikca degisen 5 sahne (GSAP ScrollTrigger).
+/* Ana sayfa "studyo": tam ekran 3B sahne (Three.js) + tek bir acilis animasyonu (GSAP).
 
    Nesne: bir klavye gibi duran "belge": tepsi + 12 x 5 = 60 tus. Her tus belgenin bir PARCASI (chunk).
-   Sahneler (kaydirma ilerledikce p = 0 -> 4):
-     0  Toplanmis belge (acilista tuslar yukaridan akip yerine oturur)
-     1  Parcalara ayrilir: tuslar aralanir ve yukselir
-     2  Anlam vektoru: her tus anlamina gore farkli yukseklikte (dalgali bir yuzey)
-     3  Soru: soruya en yakin 3 parca turuncu olur ve yukselir
-     4  Yanit: bu 3 parca one cikar, ustlerinde [1] [2] [3] yazar
+   Acilis (yaklasik 4,5 sn, bir kez oynar):
+     1  Tepsi asagidan yukselir
+     2  Uc belge (PDF, DOCX, TXT) sol ustten ucarak gelir, tepsinin ustunde suzulur
+     3  Belgeler tepsiye iner ve kaybolur; yerlerinde ortadan disa dogru tuslar (parcalar) belirir
+     4  Soruya en yakin 3 parca turuncu olur ve hafifce yukselir
+   Sonra nesne yalnizca hafifce suzulur. Kaydirmaya bagli sahne yok.
 
-   Neden bu yapi? Her karede tuslarin yeri tek bir fonksiyonla hesaplanir: konum = sahne(p) + acilis(intro).
-   GSAP yalnizca iki SAYIYI degistirir: S.intro (0 -> 1, acilista) ve S.p (0 -> 4, kaydirmayla). Boylece iki
-   animasyon birbirini bozmaz ve "animasyonu kapat" denince yalnizca p = 0, intro = 1 yapip bir kare cizmek yeter.
+   Neden bu yapi? Her karede tum nesnelerin yeri tek bir fonksiyonla (update) hesaplanir; GSAP yalnizca tek bir
+   SAYIYI degistirir: S.t (acilisin kacinci saniyesi, 0 -> END). "Animasyonu kapat" denince S.t = END yapip bir
+   kare cizmek yeter: son hal (tuslar yerinde, 3 kaynak turuncu) gorunur.
 
-   home.js bu dosyayi window.Studio.start() / stop() ile yonetir. WebGL ya da GSAP yoksa sahne metinleri
-   animasyonsuz, alt alta gorunur (CSS: .studio:not(.is-live)). */
+   home.js bu dosyayi window.Studio.start() / stop() ile yonetir. WebGL ya da GSAP yoksa yalnizca metin
+   animasyonsuz gorunur (CSS: .studio:not(.is-live)). */
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -72,8 +72,9 @@ function createStudio() {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  /* ---------- Nesne: tepsi + tuslar ---------- */
+  /* ---------- Nesne: tepsi + tuslar + belgeler ---------- */
   const board = new THREE.Group();
+  board.rotation.set(0.04, -0.62, 0);
   scene.add(board);
   const tray = new THREE.Mesh(
     new RoundedBoxGeometry(COLS * GAP + 0.7, 0.5, ROWS * GAP + 0.7, 4, 0.16),
@@ -90,11 +91,17 @@ function createStudio() {
   }
   capGeo.computeVertexNormals();
 
-  // Tusun ust yuzu icin kucuk resim (canvas): parcalarda metin satirlari, kaynaklarda [1] [2] [3]
-  function topTexture(bg, ink, label) {
+  // Kucuk resim (canvas): tus ustunde metin satirlari ya da [1] [2] [3]; belge sayfasinda tur etiketi + satirlar
+  function texture(w, h, draw) {
     const c = document.createElement("canvas");
-    c.width = c.height = 128;
-    const g = c.getContext("2d");
+    c.width = w; c.height = h;
+    draw(c.getContext("2d"));
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }
+  const topTexture = (bg, ink, label) => texture(128, 128, (g) => {
     g.fillStyle = bg;
     g.fillRect(0, 0, 128, 128);
     g.fillStyle = ink;
@@ -106,11 +113,17 @@ function createStudio() {
     } else {
       g.fillRect(28, 44, 72, 6); g.fillRect(28, 61, 58, 6); g.fillRect(28, 78, 66, 6);
     }
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
-    return t;
-  }
+  });
+  const pageTexture = (label) => texture(256, 340, (g) => {
+    g.fillStyle = "#f4f4f2";
+    g.fillRect(0, 0, 256, 340);
+    g.fillStyle = "#161618";
+    g.font = "700 34px Montserrat, Inter, sans-serif";
+    g.fillText(label, 26, 58);
+    g.fillStyle = "#b9b9bd";
+    for (let y = 92, i = 0; y < 310; y += 22, i++) g.fillRect(26, y, 204 - (i * 37 % 70), 8);
+  });
+
   const plastic = (color, map = null) => new THREE.MeshStandardMaterial({ color, map, roughness: 0.58, metalness: 0 });
   const blackSide = plastic("#161618"), greySide = plastic("#3d3d41");
   const blackTop = plastic("#ffffff", topTexture("#161618", "#4a4a4f"));
@@ -134,60 +147,64 @@ function createStudio() {
       }
       const mesh = new THREE.Mesh(capGeo, m);
       mesh.castShadow = mesh.receiveShadow = true;
-      mesh.userData = {
-        r, c, src,
-        x: (c - (COLS - 1) / 2) * GAP, z: (r - (ROWS - 1) / 2) * GAP,
-        h: 0.35 + 1.25 * (0.5 + 0.5 * Math.sin(c * 0.9 + r * 1.7) * Math.cos(c * 0.35 - r * 0.6)),   // "vektor" yuksekligi
-        order: c * ROWS + (c % 2 ? ROWS - 1 - r : r),                                                 // acilista yilan gibi siralama
-        spin: [(i * 7 % 5 - 2) * 0.6, (i * 11 % 7 - 3) * 0.5],
-      };
+      const x = (c - (COLS - 1) / 2) * GAP, z = (r - (ROWS - 1) / 2) * GAP;
+      mesh.userData = { src, x, z, delay: Math.hypot(x, z * 1.6) * 0.055 };   // ortadan disa dalga
       board.add(mesh);
       caps.push(mesh);
     }
   }
 
-  /* ---------- Sahneler: p'ye gore konumlar ---------- */
+  // Belgeler: ince, yuvarlak koseli sayfalar. Saydam malzeme: tepsiye inerken solarlar.
+  const pageGeo = new RoundedBoxGeometry(2.3, 0.05, 3.0, 2, 0.025);
+  const pages = ["PDF", "DOCX", "TXT"].map((label, i) => {
+    const edge = new THREE.MeshStandardMaterial({ color: "#e4e4e1", roughness: 0.8, transparent: true });
+    const face = new THREE.MeshStandardMaterial({ color: "#ffffff", map: pageTexture(label), roughness: 0.8, transparent: true });
+    const mesh = new THREE.Mesh(pageGeo, mats(edge, face));
+    mesh.castShadow = true;
+    // Suzulme yeri: tepsinin ustunde, yelpaze gibi hafif acili
+    mesh.userData = { x: -2.6 + i * 2.6, y: 1.75 + i * 0.12, z: 0.6 - i * 0.15, ry: (1 - i) * 0.14, start: 0.25 + i * 0.22 };
+    board.add(mesh);
+    return mesh;
+  });
+
+  /* ---------- Acilis: S.t saniyesine gore her seyin yeri ---------- */
   const Y0 = 0.25 + 0.23;                         // tepsinin ustu + tusun yari yuksekligi
-  const BOARD = [                                  // tepsi donusu (y, x) ve tepsi yuksekligi, sahne basina
-    { ry: -0.62, rx: 0.0, ty: 0 }, { ry: -0.42, rx: 0.14, ty: -0.55 }, { ry: -0.86, rx: 0.06, ty: 0 },
-    { ry: -0.55, rx: 0.3, ty: 0 }, { ry: -0.42, rx: 0.2, ty: 0 },
-  ];
-  function pose(d, s) {
-    const src = d.src >= 0;
-    switch (s) {
-      case 0: return [d.x, Y0, d.z, 0];
-      case 1: return [d.x * 1.22, Y0 + 0.45 + 0.035 * d.c, d.z * 1.22, 0];
-      case 2: return [d.x * 1.08, Y0 + d.h, d.z * 1.08, 0];
-      case 3: return src ? [d.x, Y0 + 1.5, d.z, 0] : [d.x, Y0 + 0.12, d.z, 0];
-      default: return src ? [-1.9 + d.src * 1.9, 3.1, 3.4, 0.55] : [d.x, Y0, d.z, 0];
-    }
-  }
-  const smooth = (t) => t * t * (3 - 2 * t);
+  const T = { tray: 0.8, fly: 1.0, land: 2.05, landLen: 0.6, keys: 2.3, keyLen: 0.55, glow: 3.75, glowLen: 0.6 };
+  const END = T.glow + T.glowLen;
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
+  const outCubic = (k) => 1 - Math.pow(1 - k, 3);
+  const outBack = (k) => 1 + 2.4 * Math.pow(k - 1, 3) + 1.4 * Math.pow(k - 1, 2);   // hafif yaylanarak oturur
   const lerp = (a, b, t) => a + (b - a) * t;
-  const S = { p: 0, intro: 1, time: 0, visible: true };
-  const INTRO_STEP = 0.035, INTRO_FLY = 1.1, INTRO_LEN = INTRO_STEP * (COLS * ROWS - 1) + INTRO_FLY;
+  const S = { t: END, time: 0, visible: true };
 
   function update() {
-    const s = Math.min(3, Math.floor(S.p)), t = smooth(S.p - s);
-    const b0 = BOARD[s], b1 = BOARD[s + 1];
-    board.rotation.set(lerp(b0.rx, b1.rx, t), lerp(b0.ry, b1.ry, t), 0);
     board.position.y = layout.y + Math.sin(S.time * 0.8) * 0.05;          // hafif suzulme
-    const trayIntro = 1 - Math.pow(1 - Math.min(1, S.intro * INTRO_LEN / 0.8), 3);
-    tray.position.y = -0.0 + lerp(b0.ty, b1.ty, t) - (1 - trayIntro) * 2.5;
-    const orange = Math.min(1, Math.max(0, S.p - 2));                      // 2 -> 3 arasinda turuncuya gecer
+    tray.position.y = -(1 - outCubic(clamp01(S.t / T.tray))) * 2.5;
 
+    for (const p of pages) {
+      const d = p.userData;
+      const fly = outCubic(clamp01((S.t - d.start) / T.fly)), off = 1 - fly;   // sol ust-arkadan ucarak gelir
+      const land = clamp01((S.t - T.land - (2 - pages.indexOf(p)) * 0.08) / T.landLen);
+      const down = land * land;                                              // tepsiye hizlanarak iner
+      p.position.set(d.x - 6 * off, lerp(d.y, Y0, down) + 7 * off, d.z - 3 * off);
+      p.rotation.set(0.5 * off, d.ry + 0.8 * off, -0.35 * off);
+      p.scale.setScalar(1 - 0.25 * down);
+      for (const m of new Set(p.material)) m.opacity = 1 - down;
+      p.visible = S.t > d.start && land < 1;
+    }
+
+    const glow = outCubic(clamp01((S.t - T.glow) / T.glowLen));            // 3 kaynak turuncu olur, yukselir
     for (const m of caps) {
       const d = m.userData;
-      const a = pose(d, s), b = pose(d, s + 1);
-      // Acilis: her tus sirasi gelince sol ust-arkadan "yilan" gibi akip yerine oturur
-      const k = Math.min(1, Math.max(0, (S.intro * INTRO_LEN - d.order * INTRO_STEP) / INTRO_FLY));
-      const e = 1 - Math.pow(1 - k, 3), off = 1 - e;
-      m.position.set(lerp(a[0], b[0], t) - 3 * off, lerp(a[1], b[1], t) + 9 * off, lerp(a[2], b[2], t) - 2.5 * off);
-      m.rotation.set(lerp(a[3], b[3], t) + d.spin[0] * off, d.spin[1] * off, 0);
+      const k = clamp01((S.t - T.keys - d.delay) / T.keyLen);
+      const e = outBack(k);
+      const lift = d.src >= 0 ? 0.35 * glow : 0;
+      m.position.set(d.x, Y0 - 0.6 * (1 - e) + lift, d.z);                  // tepsinin icinden yukari cikar
+      m.scale.setScalar(Math.max(0.01, 0.4 + 0.6 * e));
       m.visible = k > 0;
       if (d.src >= 0) {
-        m.material[0].color.copy(BLACK).lerp(ORANGE, orange);
-        m.material[2].color.copy(BLACK).lerp(ORANGE, orange);
+        m.material[0].color.copy(BLACK).lerp(ORANGE, glow);
+        m.material[2].color.copy(BLACK).lerp(ORANGE, glow);
       }
     }
   }
@@ -219,50 +236,33 @@ function createStudio() {
   /* ---------- Canli mod ---------- */
   let ctx = null;
   const tick = (time) => { S.time = time; if (S.visible) render(); };
-  const scenes = [...section.querySelectorAll(".scene")];
-  const counter = document.getElementById("studio-index");
+  const hero = section.querySelector(".scene");
 
   function start() {
     if (ctx) return;
     section.classList.add("is-live");
     ctx = gsap.context(() => {
-      gsap.set(scenes.slice(1), { autoAlpha: 0 });
-      // Acilis: tuslar akar, ilk sahnenin yazisi satir satir gelir
-      S.intro = 0;
-      gsap.to(S, { intro: 1, duration: INTRO_LEN, ease: "none" });
-      SplitText.create(scenes[0].querySelector(".scene-title"), {
+      // Acilis: belgeler gelir, parcalara donusur; yazi satir satir gelir
+      S.t = 0;
+      gsap.to(S, { t: END, duration: END, ease: "none" });
+      SplitText.create(hero.querySelector(".scene-title"), {
         type: "lines", mask: "lines", linesClass: "split-line", autoSplit: true,
         onSplit: (self) => gsap.from(self.lines, { yPercent: 110, duration: 1.1, stagger: 0.1, delay: 0.6, ease: "expo.out" }),
       });
-      gsap.from(scenes[0].querySelectorAll("p, .scene-cta"), { y: 14, autoAlpha: 0, duration: 0.8, stagger: 0.1, delay: 1.1 });
-
-      // Kaydirma: bolum ekrana sabitlenir; 4 ekran boyu kaydirma = p 0 -> 4
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: ".studio-pin", start: "top top", end: () => "+=" + window.innerHeight * 4,
-          pin: true, scrub: 1, invalidateOnRefresh: true,
-        },
-        onUpdate() { counter.textContent = "00" + (Math.round(this.time()) + 1); },
-      });
-      tl.to(S, { p: 4, duration: 4, ease: "none" }, 0);
-      for (let k = 1; k < scenes.length; k++) {   // sahne metinleri: eskisi yukari kayip solar, yenisi alttan gelir
-        tl.to(scenes[k - 1], { autoAlpha: 0, y: -40, duration: 0.3 }, k - 0.55);
-        tl.fromTo(scenes[k], { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.3 }, k - 0.3);
-      }
+      gsap.from(hero.querySelectorAll("p, .scene-cta"), { y: 14, autoAlpha: 0, duration: 0.8, stagger: 0.1, delay: 1.1 });
       // Bolum ekranda degilken cizim durur (islemci bosuna calismasin)
       ScrollTrigger.create({ trigger: section, start: "top bottom", end: "bottom top", onToggle: (st) => { S.visible = st.isActive; } });
     });
     gsap.ticker.add(tick);
   }
 
-  // Animasyonsuz hal: toplanmis belge, tek kare
+  // Animasyonsuz hal: acilisin son hali, tek kare
   function stop() {
     gsap.ticker.remove(tick);
     if (ctx) { ctx.revert(); ctx = null; }
-    scenes.forEach((s) => s.removeAttribute("style"));                    // GSAP'in biraktigi gorunurluk stilleri
+    hero.removeAttribute("style");
     section.classList.remove("is-live");
-    counter.textContent = "001";
-    Object.assign(S, { p: 0, intro: 1, time: 0, visible: true });
+    Object.assign(S, { t: END, time: 0, visible: true });
     requestAnimationFrame(resize);                  // yerlesim (alt alta duzen) degisti: boyutu yeniden olc
     resize();
   }

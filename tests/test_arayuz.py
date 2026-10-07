@@ -58,8 +58,11 @@ class ArayuzTests(unittest.TestCase):
         self.assertLess(harita.start(), self.html.index('<script type="module" src="studio.js'))
         studio = (STATIC / "studio.js").read_text(encoding="utf-8")
         for parca in ('from "three"', "webglAvailable()", 'classList.add("no-3d")', 'new Event("studio-ready")',
-                      "function start()", "function stop()", "pin: true", "scrub: 1"):
+                      "function start()", "function stop()", "gsap.to(S, { t: END", '["PDF", "DOCX", "TXT"]'):
             self.assertIn(parca, studio)
+        # Kaydirmaya bagli sahneler kaldirildi (kullanici karari 2026-10-07): yalnizca tek acilis animasyonu
+        for kalinti in ("pin: true", "scrub", "studio-index"):
+            self.assertNotIn(kalinti, studio)
         self.assertIn(".studio.no-3d #studio-canvas { display: none; }", self.css)
 
     def test_animasyon_dugmesi_ve_geri_alma(self):
@@ -74,12 +77,12 @@ class ArayuzTests(unittest.TestCase):
             self.assertIn(parca, home)
 
     def test_ana_sayfa_animasyonsuz_hali_eksiksiz(self):
-        """Animasyon yokken de ornek ve 5 sahne okunur: metinler HTML'de yazili, gizleme yalnizca JS ile yapilir;
-        canli olmayan studyoda sahneler alt alta dizilir."""
-        for metin in ("Ödev teslim tarihi ne zaman?", "Madde 12.", "Kaynak: Madde 12", "Belgen parçalara ayrılır.",
-                      "Her parça anlamına göre konumlanır.", "Soruna en yakın parçalar bulunur.", "Yanıt, kaynağıyla gelir."):
+        """Animasyon yokken de ornek ve giris metni okunur: metinler HTML'de yazili, gizleme yalnizca JS ile yapilir;
+        canli olmayan studyoda metin 3B sahnenin altina dizilir."""
+        for metin in ("Ödev teslim tarihi ne zaman?", "Madde 12.", "Kaynak: Madde 12", "Belgene sor, kaynağıyla yanıt al."):
             self.assertIn(metin, self.html)
-        self.assertEqual(self.html.count('class="scene"'), 5)
+        self.assertEqual(self.html.count('class="scene"'), 1)          # kaydirmayla degisen 5 sahne yok, tek giris
+        self.assertNotIn("studio-count", self.html + self.css)
         for kural in re.findall(r"\.(?:scene|studio|demo)[\w-]*[^{]*\{[^}]*\}", self.css):
             if kural.startswith((".demo-scan", ".demo-caret")):   # tarama cizgisi ve imlec yalnizca animasyonda gorunur
                 continue

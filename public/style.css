@@ -194,8 +194,6 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 32px); }
 .studio-pin::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(90deg, rgba(0, 0, 0, .3) 0%, rgba(0, 0, 0, .1) 42%, transparent 66%); }  /* yazi tarafi koyulasir: beyaz yazi okunur */
 #studio-canvas { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; }
 .studio.no-3d #studio-canvas { display: none; }
-.studio-count { position: absolute; z-index: 2; left: var(--h-pad); top: 30%; margin: 0; font: 500 .78rem var(--studio-font); letter-spacing: .04em; }
-.studio-count b { font-weight: 600; }
 .scenes { position: absolute; z-index: 2; left: var(--h-pad); top: 38%; width: min(40rem, 42vw); }
 .scene { position: absolute; top: 0; left: 0; right: 0; }
 .scene-title { margin: 0 0 1.1rem; max-width: 16ch; font: 500 clamp(1.6rem, 3vw, 2.85rem)/1.12 var(--studio-font); letter-spacing: .005em; text-transform: uppercase; text-wrap: balance; }
@@ -217,7 +215,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 32px); }
 .studio:not(.is-live) .scenes { position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 2rem 3rem; width: auto; margin-top: 1.5rem; }
 .studio:not(.is-live) .scene { position: static; }
 .studio:not(.is-live) .scene[data-scene="0"] { grid-column: 1 / -1; }
-.studio:not(.is-live) .studio-count, .studio:not(.is-live) .studio-scroll { display: none; }
+.studio:not(.is-live) .studio-scroll { display: none; }
 .studio:not(.is-live) .studio-source { position: static; margin-top: 2rem; }
 
 /* Bolumler */
@@ -290,8 +288,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 32px); }
 
 /* Dar ekran: yazi ustte, 3B nesne altta (studio.js kamerayi buna gore ayarlar) */
 @media (max-width: 1000px) {
-  .studio-count { top: 92px; }
-  .scenes { top: 122px; width: calc(100% - 2 * var(--h-pad)); }
+    .scenes { top: 122px; width: calc(100% - 2 * var(--h-pad)); }
   .scene-title { font-size: clamp(1.45rem, 6vw, 2.2rem); }
   .scene p { font-size: .88rem; }
   .studio-pin::before { background: linear-gradient(180deg, rgba(0, 0, 0, .28) 0%, rgba(0, 0, 0, .08) 45%, transparent 65%); }

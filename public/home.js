@@ -1,8 +1,8 @@
 /* Ana sayfa animasyonlarinin yoneticisi: GSAP 3 + ScrollTrigger + SplitText (public/vendor/). Uygulama ekranlarina dokunmaz.
 
    Parcalar:
-   1) Studyo (studio.js, Three.js): tam ekran 3B sahne + kaydirdikca degisen 5 sahne. Bu dosya onu yalnizca
-      baslatir/durdurur (window.Studio.start / stop).
+   1) Studyo (studio.js, Three.js): tam ekran 3B sahne + tek acilis animasyonu (belgeler gelir, parcalara
+      donusur). Bu dosya onu yalnizca baslatir/durdurur (window.Studio.start / stop).
    2) Basliklar: SplitText metni satirlara boler, her satir bir "maske"nin altindan yukari kayarak gorunur.
    3) Canli ornek: soru harf harf yazilir, belge taranir, ilgili madde fosforlu kalemle isaretlenir,
       yanit kelime kelime gelir ve [1] ile o madde arasina cizgi cekilir. Ucuncu ornekte belgede bilgi yoktur.
