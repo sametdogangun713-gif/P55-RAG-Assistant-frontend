@@ -104,7 +104,6 @@ button.secondary, .icon-btn { background: transparent; color: var(--ink); border
 button.secondary:hover:not(:disabled), .icon-btn:hover:not(:disabled) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 button.danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); box-shadow: none; }
 button.danger:hover:not(:disabled) { background: var(--bad); color: #fff; border-color: var(--bad); }
-button.lg { padding: .8rem 1.4rem; font-size: .95rem; }
 button.block { width: 100%; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button.busy { color: transparent !important; cursor: progress; }
