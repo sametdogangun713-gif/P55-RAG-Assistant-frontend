@@ -1,6 +1,6 @@
-# P55 – Belge Tabanlı Soru-Cevap Asistanı (RAG) · Frontend
+# Belge Tabanlı Soru Asistanı (RAG) · Frontend
 
-P55 projesinin **web arayüzü**. Saf HTML, CSS ve JavaScript; derleme adımı, paket yöneticisi ya da çerçeve yok.
+Belge Tabanlı Soru Asistanı projesinin **web arayüzü**. Saf HTML, CSS ve JavaScript; derleme adımı, paket yöneticisi ya da çerçeve yok.
 Geliştirici: Samet DOĞANGÜN · Ders: Bilgisayar Uygulamaları I (Bingöl Üniversitesi) · Öğr. Gör. Mustafa NARİN
 
 | Depo | İçerik |

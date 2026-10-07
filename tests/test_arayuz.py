@@ -24,28 +24,54 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn('[data-theme="dark"]', self.css)
         self.assertIn("@media (prefers-color-scheme: dark)", self.css)
         self.assertIn("color-scheme: dark", self.css)
-        self.assertIn('localStorage.getItem("p55_theme")', self.html)
+        self.assertIn('localStorage.getItem("asistan_theme")', self.html)
         self.assertIn('id="theme-toggle"', self.html)
         app = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn('matchMedia("(prefers-color-scheme: dark)")', app)
-        self.assertIn('localStorage.setItem("p55_theme"', app)
+        self.assertIn('localStorage.setItem("asistan_theme"', app)
 
-    def test_susleme_animasyonu_yok(self):
-        """Tema sade: 3B sahne, imlec, paralaks ve kayan acilislar kaldirildi; yalnizca islevsel gostergeler kaldi."""
-        for ad in ("fx.js", "cinema.js", "vendor"):
-            self.assertFalse((STATIC / ad).exists(), ad)
-        for kalinti in ("<canvas", "data-split", "data-magnetic", "motion-toggle", "fx.js", "cinema.js"):
+    def test_ana_sayfa_animasyonlari_yerel_gsap_ile(self):
+        """Ana sayfa animasyonlari GSAP ile (home.js); kutuphane depoda (vendor/), internetten yuklenmez ve
+        app.js'ten sonra, App.start()'tan once yuklenir. CSS'te yalnizca islevsel gostergelerin animasyonu var."""
+        for ad in ("gsap.min.js", "ScrollTrigger.min.js", "SplitText.min.js", "README.md"):
+            self.assertTrue((STATIC / "vendor" / ad).is_file(), ad)
+        sira = [self.html.index(p) for p in ('src="app.js', 'src="vendor/gsap.min.js', 'src="vendor/ScrollTrigger.min.js',
+                                             'src="vendor/SplitText.min.js', 'src="home.js', "App.start();")]
+        self.assertEqual(sira, sorted(sira))
+        self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
+        for kalinti in ("<canvas", "fx.js", "cinema.js", "three"):            # eski 3B sahne geri gelmesin
             self.assertNotIn(kalinti, self.html)
         izinli = {"spin", "indet", "dot"}                     # yukleniyor, ilerleme cubugu, "yaziyor" noktalari
         self.assertEqual(set(re.findall(r"@keyframes\s+([\w-]+)", self.css)), izinli)
-        self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
+
+    def test_animasyon_dugmesi_ve_geri_alma(self):
+        """Ust bardaki dugme animasyonlari kapatir; tercih hatirlanir; kapatinca her sey geri alinir (revert),
+        giris yapinca da durur. GSAP yuklenmezse dugme gizlenir ve sayfa animasyonsuz gorunur."""
+        self.assertRegex(self.html, r'<button id="motion-toggle"[^>]+aria-pressed="true"[^>]+aria-label="Animasyonları kapat"')
+        self.assertIn(':root[data-motion="off"] .motion-on { display: none; }', self.css)
+        home = (STATIC / "home.js").read_text(encoding="utf-8")
+        for parca in ('localStorage.getItem(KEY) === "off"', 'localStorage.setItem(KEY, root.dataset.motion)',
+                      "gsap.matchMedia()", "mm.revert()", "new MutationObserver", 'attributeFilter: ["hidden"]',
+                      "if (!hasGsap)", "btn.hidden = true"):
+            self.assertIn(parca, home)
+
+    def test_ana_sayfa_animasyonsuz_hali_eksiksiz(self):
+        """Animasyon yokken de ornek ve sema okunur: metinler HTML'de yazili, gizleme yalnizca JS ile yapilir."""
+        for metin in ("Ödev teslim tarihi ne zaman?", "Madde 12.", "Kaynak: Madde 12", "anlam uzayı", ">[1]</text>", ">[3]</text>"):
+            self.assertIn(metin, self.html)
+        for kural in re.findall(r"#how-svg[^{]*\{[^}]*\}|\.demo[\w-]*[^{]*\{[^}]*\}", self.css):
+            if kural.startswith((".demo-scan", ".demo-caret")):   # tarama cizgisi ve imlec yalnizca animasyonda gorunur
+                continue
+            self.assertNotRegex(kural, r"visibility:\s*hidden|opacity:\s*0[;\s}]", kural)
+        self.assertIn("figcaption", self.html)                  # canli ornegin ekran okuyucu aciklamasi
+        self.assertIn('<title id="how-svg-title">', self.html)
 
     def test_statik_dosyalar_var_ve_surumlu(self):
         """Her yerel CSS/JS baglantisi var olan bir dosyaya gider ve ?v= tasir (tarayici eskisini onbellekten
         getirmesin). Yollar goreli: site Vercel'de kok dizinden sunulur."""
         baglantilar = re.findall(r'(?:href|src)="([\w.-]+\.(?:js|css)\?v=\w+)"', self.html)
         adlar = {b.split("?")[0] for b in baglantilar}
-        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "style.css"} <= adlar)
+        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "home.js", "style.css"} <= adlar)
         for ad in adlar:
             self.assertTrue((STATIC / ad).is_file(), ad)
         self.assertNotIn('"/static/', self.html)
@@ -72,8 +98,8 @@ class ArayuzTests(unittest.TestCase):
 
     def test_backend_adresi_config_jsden_okunur(self):
         app = (STATIC / "app.js").read_text(encoding="utf-8")
-        self.assertIn("window.P55_CONFIG", app)
-        self.assertIn("fetch(P55.api + path", app)
+        self.assertIn("window.APP_CONFIG", app)
+        self.assertIn("fetch(App.api + path", app)
         config = (STATIC / "config.js").read_text(encoding="utf-8")
         self.assertIn("http://127.0.0.1:8000", config)            # yerel backend
         self.assertRegex(config, r'"https://[\w.-]+"')            # bulut backend (https)
@@ -90,11 +116,11 @@ class ArayuzTests(unittest.TestCase):
         docs = (STATIC / "docs.js").read_text(encoding="utf-8")
         for parca in ('"/documents/upload-url"', 'method: "PUT"', '"/documents/complete"', "l.upload_mode"):
             self.assertIn(parca, docs)
-        put = docs[docs.index("P55.send(t.upload_url"):]
+        put = docs[docs.index("App.send(t.upload_url"):]
         put = put[:put.index(");")]
         self.assertNotIn("auth: true", put)
         app = (STATIC / "app.js").read_text(encoding="utf-8")
-        self.assertIn('if (o.auth && P55.token) xhr.setRequestHeader("Authorization"', app)
+        self.assertIn('if (o.auth && App.token) xhr.setRequestHeader("Authorization"', app)
 
     def test_hesabim_sekmesi(self):
         """Ad, parola (mevcut parola + tekrar) ve onayli hesap silme; sekme klavyeyle de gezilebilir (role=tab)."""
@@ -114,20 +140,20 @@ class ArayuzTests(unittest.TestCase):
                        "btn-token-copy", "tokens-table", "tokens-empty"):
             self.assertIn(f'id="{kimlik}"', self.html)
         js = (STATIC / "account.js").read_text(encoding="utf-8")
-        for parca in ('P55.request("/auth/tokens")', '"/auth/tokens", { method: "POST"', '"/auth/tokens/" + t.id, { method: "DELETE" }',
+        for parca in ('App.request("/auth/tokens")', '"/auth/tokens", { method: "POST"', '"/auth/tokens/" + t.id, { method: "DELETE" }',
                       "onHide: hideNewToken", "confirm("):
             self.assertIn(parca, js)
         self.assertNotIn("localStorage", js)
         self.assertNotIn("sessionStorage", js)
         app = (STATIC / "app.js").read_text(encoding="utf-8")
-        self.assertIn("P55.hideTabs();", app)              # cikista
+        self.assertIn("App.hideTabs();", app)              # cikista
 
     def test_yonetici_api_anahtarlarini_gorur_ve_iptal_eder(self):
         """Yonetici anahtarlari listeler (yalnizca ilk 12 karakter) ve iptal eder; anahtar URETEMEZ."""
         for kimlik in ("admin-tokens", "admin-tokens-empty"):
             self.assertIn(f'id="{kimlik}"', self.html)
         js = (STATIC / "admin.js").read_text(encoding="utf-8")
-        for parca in ('P55.request("/admin/tokens")', '"/admin/tokens/" + t.id, { method: "DELETE" }', 't.prefix + "…"',
+        for parca in ('App.request("/admin/tokens")', '"/admin/tokens/" + t.id, { method: "DELETE" }', 't.prefix + "…"',
                       "confirm("):
             self.assertIn(parca, js)
         self.assertNotIn("t.token", js)                    # sunucu anahtarin kendisini zaten dondurmez
@@ -233,7 +259,7 @@ class ArayuzTests(unittest.TestCase):
         docs = (STATIC / "docs.js").read_text(encoding="utf-8")
         self.assertIn("if (d.chunk_count > 0)", docs)
         self.assertIn('"/reindex", { method: "POST" }', docs)
-        self.assertIn("P55.setBusy(btn, true)", docs)
+        self.assertIn("App.setBusy(btn, true)", docs)
 
     def test_yukle_dugmesi_dosya_secilene_kadar_pasif(self):
         self.assertRegex(self.html, r'<button type="submit" id="upload-btn"[^>]*\sdisabled')

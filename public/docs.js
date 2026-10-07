@@ -1,7 +1,7 @@
 "use strict";
 /* Belgelerim ve Arama sekmeleri */
 (function () {
-  const { el } = P55;
+  const { el } = App;
   const STATUS_TR = { uploaded: "yüklendi", chunked: "indeksleniyor", indexed: "hazır", failed: "hata" };
 
   function fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
@@ -24,7 +24,7 @@
   async function loadLimits() {
     if (maxUploadBytes !== null) return;
     try {
-      const l = await P55.request("/documents/limits");
+      const l = await App.request("/documents/limits");
       maxUploadBytes = l.max_upload_mb * 1048576;
       uploadMode = l.upload_mode || "direct";
       document.getElementById("upload-hint").textContent = "TXT, PDF veya DOCX (en fazla " + l.max_upload_mb + " MB)";
@@ -37,7 +37,7 @@
     loadLimits();
     const body = document.querySelector("#docs-table tbody");
     if (!body.children.length) skeleton(body, 6);
-    try { allDocs = await P55.request("/documents"); } catch (e) { body.replaceChildren(); P55.show(e.message, true); return; }
+    try { allDocs = await App.request("/documents"); } catch (e) { body.replaceChildren(); App.show(e.message, true); return; }
     renderDocs();
   }
 
@@ -84,21 +84,21 @@
         el("td", {}, status),
         el("td", {}, d.chunk_count),
         el("td", {}, fmtSize(d.size_bytes)),
-        el("td", {}, P55.fmtDate(d.uploaded_at)),
+        el("td", {}, App.fmtDate(d.uploaded_at)),
         el("td", {}, actions));
       body.append(row);
     }
   }
 
   async function reindex(d, btn) {
-    P55.setBusy(btn, true);
-    P55.show(d.filename + " indeksleniyor…", "info");
+    App.setBusy(btn, true);
+    App.show(d.filename + " indeksleniyor…", "info");
     try {
-      let out = await P55.request("/documents/" + d.id + "/reindex", { method: "POST" });
-      out = await finishIndexing(out, (x) => P55.show(d.filename + " indeksleniyor " + pctText(x), "info"));
-      P55.show("İndekslendi: " + d.filename);
-    } catch (e) { P55.show(e.message, true); }
-    P55.setBusy(btn, false);
+      let out = await App.request("/documents/" + d.id + "/reindex", { method: "POST" });
+      out = await finishIndexing(out, (x) => App.show(d.filename + " indeksleniyor " + pctText(x), "info"));
+      App.show("İndekslendi: " + d.filename);
+    } catch (e) { App.show(e.message, true); }
+    App.setBusy(btn, false);
     loadDocs();
   }
 
@@ -118,15 +118,15 @@
       if (d.indexed_chunks <= last && ++stalled >= 3) throw new Error("İndeksleme ilerlemiyor; daha sonra “Devam et” ile sürdürebilirsin.");
       if (d.indexed_chunks > last) stalled = 0;
       last = d.indexed_chunks;
-      d = await P55.request("/documents/" + d.id + "/index-next", { method: "POST" });
+      d = await App.request("/documents/" + d.id + "/index-next", { method: "POST" });
     }
     return d;
   }
 
   async function removeDoc(d) {
     if (!confirm(d.filename + " silinsin mi?")) return;
-    try { await P55.request("/documents/" + d.id, { method: "DELETE" }); P55.show("Silindi"); }
-    catch (e) { P55.show(e.message, true); }
+    try { await App.request("/documents/" + d.id, { method: "DELETE" }); App.show("Silindi"); }
+    catch (e) { App.show(e.message, true); }
     loadDocs();
   }
 
@@ -148,7 +148,7 @@
       zone.classList.toggle("too-big", tooBig);
       btn.disabled = !f || tooBig;
       btn.classList.remove("ready");
-      if (tooBig) P55.show("Dosya çok büyük (" + fmtSize(f.size) + "). En fazla " + fmtSize(maxUploadBytes) + " yüklenebilir.", true);
+      if (tooBig) App.show("Dosya çok büyük (" + fmtSize(f.size) + "). En fazla " + fmtSize(maxUploadBytes) + " yüklenebilir.", true);
       else if (f) { void btn.offsetWidth; btn.classList.add("ready"); }   // offsetWidth okumak animasyonu bastan baslatir
     };
     input.addEventListener("change", showName);
@@ -199,27 +199,27 @@
 
     document.getElementById("upload-form").addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      if (!input.files.length) { P55.show("Önce bir dosya seç ya da alana sürükle.", true); return; }
+      if (!input.files.length) { App.show("Önce bir dosya seç ya da alana sürükle.", true); return; }
       // Sinirdan buyuk dosyayi dakikalarca gonderip sonra hata almak yerine hemen uyar
       if (maxUploadBytes && input.files[0].size > maxUploadBytes) {
-        P55.show("Dosya çok büyük (" + fmtSize(input.files[0].size) + "). En fazla " + fmtSize(maxUploadBytes) + " yüklenebilir.", true);
+        App.show("Dosya çok büyük (" + fmtSize(input.files[0].size) + "). En fazla " + fmtSize(maxUploadBytes) + " yüklenebilir.", true);
         return;
       }
-      P55.setBusy(btn, true);
+      App.setBusy(btn, true);
       setProgress(0);
-      P55.show("Yükleniyor ve indeksleniyor...", "info");
+      App.show("Yükleniyor ve indeksleniyor...", "info");
       let uploaded = false;
       try {
         let d = await uploadFile(input.files[0], setProgress);
         if (d.status === "chunked") {
-          P55.show("Büyük belge: parça parça indeksleniyor. Bu sekmeyi kapatma; kapatırsan “Devam et” ile sürdürebilirsin.", "info");
+          App.show("Büyük belge: parça parça indeksleniyor. Bu sekmeyi kapatma; kapatırsan “Devam et” ile sürdürebilirsin.", "info");
           d = await finishIndexing(d, showIndexing);
         }
-        P55.show(d.status === "indexed" ? "Belge hazır: " + d.filename : "Belge yüklendi (durum: " + d.status + ")", d.status === "failed");
+        App.show(d.status === "indexed" ? "Belge hazır: " + d.filename : "Belge yüklendi (durum: " + d.status + ")", d.status === "failed");
         uploaded = true;
-      } catch (e) { P55.show(e.message, true); }
+      } catch (e) { App.show(e.message, true); }
       resetProgress();
-      P55.setBusy(btn, false);
+      App.setBusy(btn, false);
       if (uploaded) input.value = "";
       showName();                                   // basarisizsa dosya secili kalir, dugme aktif kalir (tekrar denenebilir)
       loadDocs();
@@ -231,16 +231,16 @@
   // 3) backend'e "yukledim" de: backend dosyayi depodan okuyup ayristirir ve indeksler.
   async function uploadFile(file, onProgress) {
     if (uploadMode === "storage") {
-      const t = await P55.request("/documents/upload-url", { method: "POST",
+      const t = await App.request("/documents/upload-url", { method: "POST",
         json: { filename: file.name, size_bytes: file.size } });
-      await P55.send(t.upload_url, file, onProgress, { method: "PUT",
+      await App.send(t.upload_url, file, onProgress, { method: "PUT",
         headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" } });
-      return P55.request("/documents/complete", { method: "POST",
+      return App.request("/documents/complete", { method: "POST",
         json: { path: t.path, filename: file.name, mime_type: file.type || null } });
     }
     const fd = new FormData();
     fd.append("file", file);
-    return P55.upload("/documents", fd, onProgress);
+    return App.upload("/documents", fd, onProgress);
   }
 
   function bindSearch() {
@@ -248,11 +248,11 @@
       ev.preventDefault();
       const out = document.getElementById("search-results");
       const btn = ev.target.querySelector("button");
-      P55.setBusy(btn, true);
+      App.setBusy(btn, true);
       out.replaceChildren();
       try {
-        const res = await P55.request("/search", { method: "POST", json: { query: document.getElementById("query").value, top_k: 5 } });
-        P55.show("");
+        const res = await App.request("/search", { method: "POST", json: { query: document.getElementById("query").value, top_k: 5 } });
+        App.show("");
         if (!res.results.length) out.append(el("p", { class: "empty" }, "Sonuç yok. Belge yüklediysen \"Belgelerim\" sekmesinde durumunun \"hazır\" olduğunu kontrol et."));
         for (const r of res.results) {
           const where = r.filename + (r.page_no ? " · sayfa " + r.page_no : "");
@@ -261,13 +261,13 @@
             el("i", {}, el("b", { style: "width:" + w + "%" })), "benzerlik " + r.score.toFixed(3));
           out.append(el("div", { class: "result" }, el("div", { class: "meta" }, el("span", {}, where), score), el("p", {}, r.content)));
         }
-      } catch (e) { P55.show(e.message, true); }
-      P55.setBusy(btn, false);
+      } catch (e) { App.show(e.message, true); }
+      App.setBusy(btn, false);
     });
   }
 
-  P55.tabs.docs = { onShow: loadDocs };
-  P55.tabs.search = {};
+  App.tabs.docs = { onShow: loadDocs };
+  App.tabs.search = {};
   bindUpload();
   bindSearch();
   document.getElementById("docs-filter").addEventListener("input", renderDocs);    // her tus vurusunda suz

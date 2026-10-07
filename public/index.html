@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Belge Soru-Cevap Asistanı</title>
+  <title>Belge Tabanlı Soru Asistanı</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M11 8h7l5 5v11H11z' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M14 17h6M14 20.5h4' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
   <!-- Yazi tipi: internet yoksa sistem yazi tipine duser, arayuz yine calisir -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+  <link rel="stylesheet" href="style.css?v=38">
   <!-- Tema, sayfa cizilmeden once uygulanir (acik/koyu arasinda yanip sonme olmasin). Secim yoksa isletim sistemi ayari. -->
-  <script>try { const t = localStorage.getItem("p55_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <script>try { const t = localStorage.getItem("asistan_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
   <header id="top">
-    <a class="brand" href="#top" aria-label="P55 ana sayfa">
+    <a class="brand" href="#top" aria-label="Ana sayfa">
       <span class="logo" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/></svg>
       </span>
@@ -35,6 +35,10 @@
         <span id="whoami"></span>
         <button id="logout" type="button" class="secondary">Çıkış</button>
       </div>
+      <button id="motion-toggle" type="button" class="icon-btn" aria-pressed="true" aria-label="Animasyonları kapat" title="Animasyonları kapat">
+        <svg class="motion-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+        <svg class="motion-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 12h18"/></svg>
+      </button>
       <button id="theme-toggle" type="button" class="icon-btn" aria-label="Koyu / açık tema" title="Koyu / açık tema">
         <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -43,100 +47,145 @@
   </header>
 
   <main>
-    <!-- Ana sayfa (giris yapilmamisken). Giris formu sayfanin altindaki <dialog> penceresinde, dugmeyle acilir. -->
+    <!-- Ana sayfa (giris yapilmamisken). Giris formu sayfanin altindaki <dialog> penceresinde, dugmeyle acilir.
+         Animasyonlar home.js'te (GSAP). GSAP yuklenmezse ya da "Hareket" kapaliysa sayfa bu HTML'in hali ile, animasyonsuz gorunur. -->
     <div id="home-view">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="pill">Belge tabanlı soru-cevap · RAG</p>
-          <h2 class="hero-title" id="hero-title">Belgelerine sor,<br><span>kaynağıyla</span> yanıt&nbsp;al.</h2>
-          <p class="hero-lead">Ders notlarını, yönetmelikleri, raporları yükle; sorunu Türkçe sor. Asistan yalnızca senin belgelerine dayanarak yanıt verir ve her bilginin kaynağını gösterir.</p>
+          <h2 class="hero-title" id="hero-title" data-split>Belgene sor,<br>kaynağıyla<br>yanıt al.</h2>
+          <p class="hero-lead">Ders notlarını, yönetmelikleri, raporları yükle; sorunu Türkçe sor. Asistan yalnızca senin belgelerine dayanarak yanıt verir ve her bilginin hangi satırdan geldiğini gösterir.</p>
           <div class="hero-cta">
             <button type="button" class="lg" data-open-auth="register">Ücretsiz başla</button>
             <button type="button" class="secondary lg" data-open-auth="login">Giriş yap</button>
           </div>
-          <ul class="hero-points">
-            <li>TXT, PDF, DOCX</li>
-            <li>Türkçe sorular</li>
-            <li>Her yanıtta kaynak</li>
-          </ul>
         </div>
 
-        <!-- Ornek sohbet: yalnizca tanitim, sabit metin -->
-        <div class="preview" aria-hidden="true">
-          <div class="preview-bar"><i></i><i></i><i></i><span>Sohbet</span></div>
-          <div class="preview-body">
-            <div class="bubble user">Ödev teslim tarihi ne zaman?</div>
-            <div class="bubble assistant">Ödevler dönemin 12. haftasının cuma günü saat 17.00'ye kadar öğretim elemanına e-posta ile teslim edilir. [1]
-              <div class="sources"><details open><summary>[1] ogrenci-yonergesi.pdf · sayfa 3</summary><p>Dördüncü Bölüm: Ödevler dönemin on ikinci haftasının cuma günü saat 17.00'ye kadar…</p></details></div>
-            </div>
-            <div class="bubble user">Yemekhane ücreti ne kadar?</div>
-            <div class="bubble assistant warn">Yüklediğiniz belgelerde bu soruya dair yeterli bilgi bulamadım.<div class="note">Belgede olmayan bilgi uydurulmaz.</div></div>
+        <!-- Canli ornek: soru yazilir, belgedeki ilgili madde isaretlenir, yanit kaynagiyla gelir. Yalnizca tanitim, sabit metin. -->
+        <figure class="demo" id="demo">
+          <figcaption class="visually-hidden">Örnek: “Ödev teslim tarihi ne zaman?” sorusu sorulur; belgedeki Madde 12 işaretlenir ve yanıt bu maddeye [1] alıntısıyla bağlanır.</figcaption>
+          <div class="demo-doc" aria-hidden="true">
+            <div class="demo-doc-head"><span>ogrenci-yonergesi.pdf</span><span>sayfa 3</span></div>
+            <p class="demo-doc-title">Dördüncü Bölüm: Ödevler ve Sınavlar</p>
+            <p><span class="mark is-on" data-mark="12"><b>Madde 12.</b> Ödevler, dönemin on ikinci haftasının cuma günü saat 17.00'ye kadar öğretim elemanına e-posta ile teslim edilir.</span></p>
+            <p><span class="mark" data-mark="13"><b>Madde 13.</b> Geç teslim edilen ödevden her gün için 10 puan düşülür; üç günden sonra ödev kabul edilmez.</span></p>
+            <p><span class="mark" data-mark="14"><b>Madde 14.</b> Bütünleme sınavına, final sınavına girmeyen ya da başarısız olan öğrenciler katılabilir.</span></p>
+            <i class="demo-scan"></i>
           </div>
-        </div>
+          <div class="demo-chat" aria-hidden="true">
+            <p class="demo-q"><span class="demo-q-text">Ödev teslim tarihi ne zaman?</span><i class="demo-caret"></i></p>
+            <p class="demo-a"><span class="demo-a-text">On ikinci haftanın cuma günü, saat 17.00'ye kadar öğretim elemanına e-postayla.</span> <span class="demo-cite">[1]</span></p>
+            <p class="demo-src">Kaynak: Madde 12</p>
+          </div>
+          <svg class="demo-link" aria-hidden="true"><path d=""/></svg>
+        </figure>
       </section>
 
       <section id="proje" class="home-section" aria-labelledby="proje-title">
-        <p class="section-kicker">Özellikler</p>
-        <h2 id="proje-title">Bu proje ne işe yarar?</h2>
-        <p class="section-lead">Uzun belgelerde aradığını bulmak zaman alır; genel sohbet robotları ise bilmediği konuda uydurabilir. P55 bu iki sorunu birlikte çözmek için yapıldı: yanıtı <strong>yalnızca senin yüklediğin belgelerden</strong> üretir, her cümlenin hangi parçaya dayandığını gösterir, belgede olmayan bir şey sorulursa “belgede yok” der.</p>
-        <div class="feature-grid">
-          <article class="feature">
-            <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H5v10h4M15 7h4v10h-4"/></svg></span>
+        <h2 id="proje-title" class="section-title" data-split>Yanıt belgeden gelir. Belgede yoksa uydurulmaz.</h2>
+        <p class="section-lead">Uzun belgelerde aradığını bulmak zaman alır; genel sohbet robotları ise bilmediği konuda uydurabilir. Belge Tabanlı Soru Asistanı yanıtı <strong>yalnızca senin yüklediğin belgelerden</strong> üretir, her cümlenin hangi parçaya dayandığını gösterir, belgede olmayan bir şey sorulursa bunu açıkça söyler.</p>
+        <div class="claims">
+          <article class="claim">
             <h3>Kaynaklı yanıt</h3>
             <p>Yanıttaki her bilgi <code>[1]</code>, <code>[2]</code> gibi alıntılarla belgedeki parçaya bağlanır; açıp kaynağı okuyabilirsin.</p>
           </article>
-          <article class="feature">
-            <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <article class="claim">
             <h3>Uydurmaz</h3>
             <p>İlgili parça bulunamazsa ya da model geçerli kaynak göstermezse yanıt verilmez. “Belgede yok” demek uydurmaktan iyidir.</p>
           </article>
-          <article class="feature">
-            <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <article class="claim">
             <h3>Belgen sana özel</h3>
             <p>Belgelerini yalnızca sen görürsün: dosyalar gizli bir depoda (Supabase Storage), parçalar ve anlam vektörleri PostgreSQL'de saklanır. Hesabın e-postanla doğrulanır.</p>
           </article>
         </div>
       </section>
 
-      <section id="nasil" class="home-section" aria-labelledby="nasil-title">
-        <p class="section-kicker">Nasıl çalışır</p>
-        <h2 id="nasil-title">Dört adımda kaynaklı yanıt</h2>
-        <ol class="steps">
-          <li><span class="step-no">1</span><h3>Yükle</h3><p>TXT, PDF ya da DOCX belgeni sürükleyip bırak.</p></li>
-          <li><span class="step-no">2</span><h3>Parçala ve vektörleştir</h3><p>Metin ~600 karakterlik parçalara bölünür; çok dilli bir dil modeli (Hugging Face, bge-m3) her parçayı bir anlam vektörüne çevirir.</p></li>
-          <li><span class="step-no">3</span><h3>Sor</h3><p>Sorun da vektöre çevrilir; anlamca en yakın parçalar bulunur (aynı kelimeyi kullanman şart değil).</p></li>
-          <li><span class="step-no">4</span><h3>Kaynaklı yanıt</h3><p>Dil modeli yalnızca bu parçalarla yanıt yazar; alıntılar sunucuda doğrulanır.</p></li>
-        </ol>
+      <!-- Nasil calisir: genis ekranda bolum sabitlenir, kaydirdikca sahne adim adim ilerler (home.js). -->
+      <section id="nasil" class="home-section how" aria-labelledby="nasil-title">
+        <div class="how-pin">
+          <div class="how-copy">
+            <h2 id="nasil-title" class="section-title" data-split>Dört adımda kaynaklı yanıt</h2>
+            <ol class="steps">
+              <li data-step="0"><span class="step-no">1</span><div><h3>Yükle</h3><p>TXT, PDF ya da DOCX belgeni seç ve yükle.</p></div></li>
+              <li data-step="1"><span class="step-no">2</span><div><h3>Parçala ve vektörleştir</h3><p>Metin ~600 karakterlik parçalara bölünür; çok dilli bir dil modeli (Hugging Face, bge-m3) her parçayı bir anlam vektörüne, yani “anlam uzayında” bir noktaya çevirir.</p></div></li>
+              <li data-step="2"><span class="step-no">3</span><div><h3>Sor</h3><p>Sorun da bir noktaya çevrilir; ona en yakın parçalar bulunur. Aynı kelimeyi kullanman şart değil, anlamın yakın olması yeter.</p></div></li>
+              <li data-step="3"><span class="step-no">4</span><div><h3>Kaynaklı yanıt</h3><p>Dil modeli yalnızca bu parçalarla yanıt yazar; alıntılar sunucuda doğrulanır.</p></div></li>
+            </ol>
+          </div>
+          <div class="how-stage">
+            <svg id="how-svg" viewBox="0 0 480 400" role="img" aria-labelledby="how-svg-title">
+              <title id="how-svg-title">Belge altı parçaya bölünür, parçalar anlam uzayında noktalara dönüşür, soruya en yakın üç nokta bulunur ve yanıtta [1], [2], [3] kaynakları olarak kullanılır.</title>
+              <!-- Belge sayfasi ve 6 parcasi -->
+              <g class="how-page">
+                <rect class="frame" x="40" y="36" width="150" height="232"/>
+                <text class="lbl" x="52" y="54">yonerge.pdf</text>
+              </g>
+              <g class="how-strip" data-dot="c1"><rect class="strip" x="52" y="64" width="126" height="27"/><text class="num" x="58" y="81">1</text><rect class="ln" x="72" y="71" width="96" height="3"/><rect class="ln" x="72" y="78" width="80" height="3"/></g>
+              <g class="how-strip" data-dot="c2"><rect class="strip" x="52" y="97" width="126" height="27"/><text class="num" x="58" y="114">2</text><rect class="ln" x="72" y="104" width="90" height="3"/><rect class="ln" x="72" y="111" width="98" height="3"/></g>
+              <g class="how-strip" data-dot="c3"><rect class="strip" x="52" y="130" width="126" height="27"/><text class="num" x="58" y="147">3</text><rect class="ln" x="72" y="137" width="98" height="3"/><rect class="ln" x="72" y="144" width="70" height="3"/></g>
+              <g class="how-strip" data-dot="c4"><rect class="strip" x="52" y="163" width="126" height="27"/><text class="num" x="58" y="180">4</text><rect class="ln" x="72" y="170" width="84" height="3"/><rect class="ln" x="72" y="177" width="96" height="3"/></g>
+              <g class="how-strip" data-dot="c5"><rect class="strip" x="52" y="196" width="126" height="27"/><text class="num" x="58" y="213">5</text><rect class="ln" x="72" y="203" width="96" height="3"/><rect class="ln" x="72" y="210" width="88" height="3"/></g>
+              <g class="how-strip" data-dot="c6"><rect class="strip" x="52" y="229" width="126" height="27"/><text class="num" x="58" y="246">6</text><rect class="ln" x="72" y="236" width="76" height="3"/><rect class="ln" x="72" y="243" width="94" height="3"/></g>
+
+              <!-- Anlam uzayi: her parca bir nokta. Gri noktalar baska belgelerin parcalari. -->
+              <g class="how-space">
+                <rect class="frame dashed" x="222" y="36" width="238" height="232"/>
+                <text class="lbl" x="232" y="54">anlam uzayı</text>
+              </g>
+              <g class="how-others">
+                <circle cx="252" cy="205" r="3"/><circle cx="248" cy="160" r="3"/><circle cx="380" cy="120" r="3"/><circle cx="440" cy="250" r="3"/><circle cx="250" cy="250" r="3"/>
+                <circle cx="410" cy="250" r="3"/><circle cx="372" cy="70" r="3"/><circle cx="300" cy="72" r="3"/><circle cx="446" cy="128" r="3"/><circle cx="390" cy="262" r="3"/>
+              </g>
+              <circle class="how-radius" cx="336" cy="190" r="62"/>
+              <g class="how-lines">
+                <line x1="336" y1="190" x2="318" y2="150"/><line x1="336" y1="190" x2="352" y2="226"/><line x1="336" y1="190" x2="300" y2="232"/>
+              </g>
+              <circle class="how-dot" id="c1" cx="262" cy="92" r="6"/>
+              <circle class="how-dot near" id="c2" cx="318" cy="150" r="6" data-cite="0"/>
+              <circle class="how-dot" id="c3" cx="404" cy="84" r="6"/>
+              <circle class="how-dot near" id="c4" cx="352" cy="226" r="6" data-cite="1"/>
+              <circle class="how-dot near" id="c5" cx="300" cy="232" r="6" data-cite="2"/>
+              <circle class="how-dot" id="c6" cx="430" cy="190" r="6"/>
+              <g class="how-query"><rect x="329" y="183" width="14" height="14"/><text class="lbl" x="348" y="186">soru</text></g>
+
+              <!-- Yanit karti: en yakin uc parca [1] [2] [3] olarak kaynak gosterilir -->
+              <g class="how-answer">
+                <rect class="frame" x="40" y="292" width="420" height="88"/>
+                <text class="lbl strong" x="56" y="314">Yanıt</text>
+                <rect class="ln" x="56" y="326" width="300" height="4"/><rect class="ln" x="56" y="338" width="330" height="4"/><rect class="ln" x="56" y="350" width="240" height="4"/>
+                <text class="cite" x="360" y="368">[1]</text><text class="cite" x="392" y="368">[2]</text><text class="cite" x="424" y="368">[3]</text>
+              </g>
+            </svg>
+          </div>
+        </div>
       </section>
 
       <section id="gelistirici" class="home-section" aria-labelledby="gelistirici-title">
-        <p class="section-kicker">Geliştirici</p>
-        <h2 id="gelistirici-title">Kim yaptı?</h2>
+        <h2 id="gelistirici-title" class="section-title" data-split>Kim yaptı?</h2>
         <div class="about-grid">
           <article class="person">
             <span class="person-mark" aria-hidden="true">SD</span>
             <div>
               <h3 class="person-name">Samet DOĞANGÜN</h3>
-              <p>Bingöl Üniversitesi · Bilgisayar Programcılığı</p>
+              <p>Bingöl Üniversitesi, Bilgisayar Programcılığı</p>
             </div>
           </article>
           <dl class="facts">
             <div><dt>Ders</dt><dd>Bilgisayar Uygulamaları I (proje tabanlı)</dd></div>
             <div><dt>Öğretim elemanı</dt><dd>Öğr. Gör. Mustafa NARİN</dd></div>
-            <div><dt>Proje</dt><dd>P55 — Belge Tabanlı Soru-Cevap Asistanı · 2026</dd></div>
-            <div><dt>Teknolojiler</dt><dd>Python · FastAPI · PostgreSQL + pgvector (Supabase) · Hugging Face embedding · Groq / Claude API · HTML, CSS, JavaScript · Vercel</dd></div>
-            <div><dt>Kaynak kod</dt><dd><a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-backend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-backend</a> · <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-frontend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-frontend</a></dd></div>
+            <div><dt>Proje</dt><dd>Belge Tabanlı Soru Asistanı, 2026</dd></div>
+            <div><dt>Teknolojiler</dt><dd>Python, FastAPI, PostgreSQL + pgvector (Supabase), Hugging Face embedding, Groq / Claude API, HTML, CSS, JavaScript (GSAP), Vercel</dd></div>
+            <div><dt>Kaynak kod</dt><dd><a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-backend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-backend</a>, <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-frontend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-frontend</a></dd></div>
           </dl>
         </div>
         <p class="ai-note">Geliştirmede yapay zekâ “eş programcı” olarak kullanıldı; kullanım günlüğü backend deposunda <code>docs/ai-kullanim-gunlugu.md</code> dosyasındadır.</p>
       </section>
 
-      <section class="home-cta" aria-label="Başla">
-        <div>
-          <h2>Belgeni yükle, ilk sorunu sor.</h2>
+      <section class="home-cta" aria-labelledby="cta-title">
+        <h2 id="cta-title" data-split>Belgeni yükle,<br>ilk sorunu sor.</h2>
+        <div class="home-cta-side">
           <p>Hesap açmak bir dakika sürer; e-postana gelen kodla doğrularsın.</p>
+          <button type="button" class="lg" data-open-auth="register">Hemen başla</button>
         </div>
-        <button type="button" class="lg" data-open-auth="register">Hemen başla</button>
       </section>
     </div>
 
@@ -295,8 +344,8 @@
         </div>
         <section id="tokens-card" class="account-card tokens-card" aria-labelledby="tokens-title">
           <h3 id="tokens-title">API anahtarları</h3>
-          <p class="tokens-intro">Postman, bir betik ya da başka bir uygulama P55'e bu anahtarla bağlanır:
-            <code>Authorization: Bearer p55_…</code>. Anahtarı parolan gibi sakla; sızarsa hemen sil.
+          <p class="tokens-intro">Postman, bir betik ya da başka bir uygulama sisteme bu anahtarla bağlanır:
+            <code>Authorization: Bearer bsa_…</code>. Anahtarı parolan gibi sakla; sızarsa hemen sil.
             Yeni anahtar oluşturulunca e-posta adresine bildirim gelir.</p>
           <form id="token-form" class="token-form">
             <div>
@@ -356,7 +405,7 @@
   </main>
 
   <footer class="site-foot">
-    <p><strong>P55</strong> — Belge Tabanlı Soru-Cevap Asistanı · Samet DOĞANGÜN · Bingöl Üniversitesi · 2026</p>
+    <p><strong>Belge Tabanlı Soru Asistanı</strong> · Samet DOĞANGÜN · Bingöl Üniversitesi · 2026</p>
     <p class="foot-links">
       <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-backend" target="_blank" rel="noopener noreferrer">Backend</a>
       <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-frontend" target="_blank" rel="noopener noreferrer">Frontend</a>
@@ -463,13 +512,17 @@
 
   <div id="msg" role="status" aria-live="polite"></div>
 
-  <script src="config.js?v=35"></script>
-  <script src="app.js?v=35"></script>
-  <script src="docs.js?v=35"></script>
-  <script src="chat.js?v=35"></script>
-  <script src="report.js?v=35"></script>
-  <script src="admin.js?v=36"></script>
-  <script src="account.js?v=35"></script>
-  <script>P55.start();</script>
+  <script src="config.js?v=38"></script>
+  <script src="app.js?v=38"></script>
+  <script src="docs.js?v=38"></script>
+  <script src="chat.js?v=38"></script>
+  <script src="report.js?v=38"></script>
+  <script src="admin.js?v=38"></script>
+  <script src="account.js?v=38"></script>
+  <script src="vendor/gsap.min.js?v=3150"></script>
+  <script src="vendor/ScrollTrigger.min.js?v=3150"></script>
+  <script src="vendor/SplitText.min.js?v=3150"></script>
+  <script src="home.js?v=38"></script>
+  <script>App.start();</script>
 </body>
 </html>

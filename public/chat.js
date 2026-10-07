@@ -1,7 +1,7 @@
 "use strict";
 /* Sohbet sekmesi: konusma listesi, mesajlar, kaynaklar. Sunucu metni yalnizca textContent ile yazilir. */
 (function () {
-  const { el } = P55;
+  const { el } = App;
   let currentId = null;
   const NOTES = {
     no_context: "Belgelerinde bu soruyla ilgili bir bölüm bulunamadı.",
@@ -52,7 +52,7 @@
   async function loadList() {
     const ul = document.getElementById("chat-list");
     let list;
-    try { list = await P55.request("/conversations"); } catch (e) { P55.show(e.message, true); return; }
+    try { list = await App.request("/conversations"); } catch (e) { App.show(e.message, true); return; }
     ul.replaceChildren();
     if (!list.length) ul.append(el("li", { class: "chat-side-empty" }, "Henüz sohbet yok. İlk sorunu yaz ya da “Yeni sohbet”e bas."));
     for (const c of list) {
@@ -77,8 +77,8 @@
       done = true;
       const title = input.value.trim();
       if (save && title && title !== c.title) {
-        try { await P55.request("/conversations/" + c.id, { method: "PATCH", json: { title } }); P55.show("Sohbet adı değişti"); }
-        catch (e) { P55.show(e.message, true); }
+        try { await App.request("/conversations/" + c.id, { method: "PATCH", json: { title } }); App.show("Sohbet adı değişti"); }
+        catch (e) { App.show(e.message, true); }
       }
       loadList();
     };
@@ -94,23 +94,23 @@
     const thread = document.getElementById("chat-thread");
     thread.replaceChildren();
     try {
-      const msgs = await P55.request("/conversations/" + id + "/messages");
+      const msgs = await App.request("/conversations/" + id + "/messages");
       if (!msgs.length) resetThread();
       for (const m of msgs) thread.append(bubble(m));
-    } catch (e) { P55.show(e.message, true); }
+    } catch (e) { App.show(e.message, true); }
     scrollDown();
     loadList();
   }
 
   async function removeConv(c) {
     if (!confirm("“" + c.title + "” sohbeti silinsin mi?")) return;
-    try { await P55.request("/conversations/" + c.id, { method: "DELETE" }); } catch (e) { P55.show(e.message, true); }
+    try { await App.request("/conversations/" + c.id, { method: "DELETE" }); } catch (e) { App.show(e.message, true); }
     if (currentId === c.id) { currentId = null; resetThread(); }
     loadList();
   }
 
   async function newConv() {
-    const c = await P55.request("/conversations", { method: "POST", json: {} });
+    const c = await App.request("/conversations", { method: "POST", json: {} });
     currentId = c.id;
     resetThread();
     await loadList();
@@ -118,7 +118,7 @@
   }
 
   function bindForm() {
-    document.getElementById("chat-new").addEventListener("click", () => newConv().catch(e => P55.show(e.message, true)));
+    document.getElementById("chat-new").addEventListener("click", () => newConv().catch(e => App.show(e.message, true)));
     // Enter gonderir, Shift+Enter yeni satir. (Turkce klavyede harf birlestirme sirasinda gonderme: isComposing)
     document.getElementById("chat-input").addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
@@ -132,7 +132,7 @@
       const text = input.value.trim();
       if (!text) return;
       const btn = ev.target.querySelector("button");
-      P55.setBusy(btn, true);
+      App.setBusy(btn, true);
       const thread = document.getElementById("chat-thread");
       try {
         if (currentId === null) await newConv();
@@ -144,23 +144,23 @@
         thread.append(waiting);
         scrollDown();
         try {
-          const out = await P55.request("/conversations/" + currentId + "/messages", { method: "POST", json: { content: text } });
+          const out = await App.request("/conversations/" + currentId + "/messages", { method: "POST", json: { content: text } });
           waiting.replaceWith(bubble(out.assistant_message));
           input.value = "";
-          P55.show("");
+          App.show("");
         } catch (e) {
           waiting.remove();
           thread.lastElementChild && thread.lastElementChild.classList.contains("user") && thread.lastElementChild.remove();
           if (!thread.children.length) resetThread();
-          P55.show(e.message, true);        // soru metni kutuda kalir, tekrar gonderilebilir
+          App.show(e.message, true);        // soru metni kutuda kalir, tekrar gonderilebilir
         }
         scrollDown();
         loadList();
-      } catch (e) { P55.show(e.message, true); }
-      P55.setBusy(btn, false);
+      } catch (e) { App.show(e.message, true); }
+      App.setBusy(btn, false);
     });
   }
 
-  P55.tabs.chat = { onShow() { if (currentId === null) resetThread(); loadList(); } };
+  App.tabs.chat = { onShow() { if (currentId === null) resetThread(); loadList(); } };
   bindForm();
 })();

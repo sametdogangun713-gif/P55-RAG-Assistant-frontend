@@ -1,7 +1,7 @@
 "use strict";
 /* Rapor sekmesi: ozet kartlari, kalite dagilimi, en cok kullanilan kaynaklar, gunluk soru sayisi, PDF. */
 (function () {
-  const { el } = P55;
+  const { el } = App;
   const STATUS_LABEL = {
     answered: "Kaynaklı yanıt", no_context: "İlgili bölüm bulunamadı", no_info: "Yeterli bilgi yok",
     unverified: "Doğrulanamadı", general: "Genel yanıt (belge dışı)", unknown: "Bilinmiyor",
@@ -67,9 +67,9 @@
   }
 
   async function load() {
-    document.getElementById("report-scope-box").hidden = !(P55.user && P55.user.role === "admin");
-    try { render(await P55.request("/reports/usage?" + params())); P55.show(""); }
-    catch (e) { P55.show(e.message, true); }
+    document.getElementById("report-scope-box").hidden = !(App.user && App.user.role === "admin");
+    try { render(await App.request("/reports/usage?" + params())); App.show(""); }
+    catch (e) { App.show(e.message, true); }
   }
 
   // Rapor PDF olarak indirilir (sunucuda reportlab ile uretilir). CSV, Excel'in bolgesel ayarina gore (ayrac,
@@ -77,20 +77,20 @@
   // fetch ile alinir; dosya blob olarak (baytlari degismeden) kaydedilir.
   async function downloadPdf() {
     const btn = document.getElementById("report-pdf");
-    P55.setBusy(btn, true);
+    App.setBusy(btn, true);
     try {
-      const blob = await P55.request("/reports/usage.pdf?" + params(), { blob: true });
+      const blob = await App.request("/reports/usage.pdf?" + params(), { blob: true });
       const url = URL.createObjectURL(blob);
       const today = new Date().toISOString().slice(0, 10);
       const a = el("a", { href: url, download: "kullanim-raporu-" + today + ".pdf" });
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);   // hemen iptal edilirse bazi tarayicilarda indirme yarida kalir
-      P55.show("Rapor PDF olarak indirildi");
-    } catch (e) { P55.show(e.message, true); }
-    P55.setBusy(btn, false);
+      App.show("Rapor PDF olarak indirildi");
+    } catch (e) { App.show(e.message, true); }
+    App.setBusy(btn, false);
   }
 
   document.getElementById("report-form").addEventListener("submit", (ev) => { ev.preventDefault(); load(); });
   document.getElementById("report-pdf").addEventListener("click", downloadPdf);
-  P55.tabs.report = { onShow: load };
+  App.tabs.report = { onShow: load };
 })();
