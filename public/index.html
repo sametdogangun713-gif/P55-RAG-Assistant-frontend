@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-  <link rel="stylesheet" href="style.css?v=41">
+  <link rel="stylesheet" href="style/style.css?v=41">
   <!-- Tema, sayfa cizilmeden once uygulanir (acik/koyu arasinda yanip sonme olmasin). Secim yoksa isletim sistemi ayari. -->
   <script>try { const t = localStorage.getItem("asistan_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
@@ -467,20 +467,20 @@
 
   <div id="msg" role="status" aria-live="polite"></div>
 
-  <script src="config.js?v=39"></script>
-  <script src="app.js?v=39"></script>
-  <script src="docs.js?v=39"></script>
-  <script src="chat.js?v=39"></script>
-  <script src="report.js?v=39"></script>
-  <script src="admin.js?v=39"></script>
-  <script src="account.js?v=39"></script>
+  <script src="config/config.js?v=39"></script>
+  <script src="app/app.js?v=39"></script>
+  <script src="docs/docs.js?v=39"></script>
+  <script src="chat/chat.js?v=39"></script>
+  <script src="report/report.js?v=39"></script>
+  <script src="admin/admin.js?v=39"></script>
+  <script src="account/account.js?v=39"></script>
   <script src="vendor/gsap.min.js?v=3150"></script>
   <script src="vendor/ScrollTrigger.min.js?v=3150"></script>
   <script src="vendor/SplitText.min.js?v=3150"></script>
-  <script src="home.js?v=40"></script>
+  <script src="home/home.js?v=40"></script>
   <!-- 3B sahne: Three.js bir ES modulu; "three" adini depodaki dosyaya baglayan import haritasi -->
   <script type="importmap">{"imports": {"three": "./vendor/three/three.module.min.js?v=186", "three/addons/": "./vendor/three/addons/"}}</script>
-  <script type="module" src="studio.js?v=40"></script>
+  <script type="module" src="studio/studio.js?v=40"></script>
   <script>App.start();</script>
 </body>
 </html>

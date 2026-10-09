@@ -7,12 +7,19 @@ import unittest
 from pathlib import Path
 
 STATIC = Path(__file__).resolve().parent.parent / "public"
+# Her dosya kendi klasorunde: public/docs/docs.js, public/style/style.css (vendor/ disaridan gelen kutuphaneler)
+JS_ADLARI = ("config", "app", "docs", "chat", "report", "admin", "account", "home", "studio")
+
+
+def uygulama_js():
+    """Bizim yazdigimiz JS dosyalari (vendor/ haric)."""
+    return sorted(p for p in STATIC.rglob("*.js") if "vendor" not in p.parts)
 
 
 class ArayuzTests(unittest.TestCase):
     def setUp(self):
         self.html = (STATIC / "index.html").read_text(encoding="utf-8")
-        self.css = (STATIC / "style.css").read_text(encoding="utf-8")
+        self.css = (STATIC / "style" / "style.css").read_text(encoding="utf-8")
 
     def test_animasyonlar_kapatilabilir(self):
         """Hareket hassasiyeti olan kullanicilar (isletim sistemi ayari) icin islevsel gostergeler de durmali."""
@@ -26,7 +33,7 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn("color-scheme: dark", self.css)
         self.assertIn('localStorage.getItem("asistan_theme")', self.html)
         self.assertIn('id="theme-toggle"', self.html)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn('matchMedia("(prefers-color-scheme: dark)")', app)
         self.assertIn('localStorage.setItem("asistan_theme"', app)
 
@@ -35,8 +42,8 @@ class ArayuzTests(unittest.TestCase):
         app.js'ten sonra, App.start()'tan once yuklenir. CSS'te yalnizca islevsel gostergelerin animasyonu var."""
         for ad in ("gsap.min.js", "ScrollTrigger.min.js", "SplitText.min.js", "README.md"):
             self.assertTrue((STATIC / "vendor" / ad).is_file(), ad)
-        sira = [self.html.index(p) for p in ('src="app.js', 'src="vendor/gsap.min.js', 'src="vendor/ScrollTrigger.min.js',
-                                             'src="vendor/SplitText.min.js', 'src="home.js', "App.start();")]
+        sira = [self.html.index(p) for p in ('src="app/app.js', 'src="vendor/gsap.min.js', 'src="vendor/ScrollTrigger.min.js',
+                                             'src="vendor/SplitText.min.js', 'src="home/home.js', "App.start();")]
         self.assertEqual(sira, sorted(sira))
         self.assertNotRegex(self.html, r'<script[^>]+src="https?://', "uygulama kodu internetten yuklenmemeli")
         for kalinti in ("fx.js", "cinema.js"):                 # eski sahne dosyalari geri gelmesin
@@ -55,8 +62,8 @@ class ArayuzTests(unittest.TestCase):
         harita = re.search(r'<script type="importmap">(.*?)</script>', self.html, re.S)
         self.assertIsNotNone(harita)
         self.assertIn('"three": "./vendor/three/three.module.min.js', harita.group(1))
-        self.assertLess(harita.start(), self.html.index('<script type="module" src="studio.js'))
-        studio = (STATIC / "studio.js").read_text(encoding="utf-8")
+        self.assertLess(harita.start(), self.html.index('<script type="module" src="studio/studio.js'))
+        studio = (STATIC / "studio" / "studio.js").read_text(encoding="utf-8")
         for parca in ('from "three"', "webglAvailable()", 'classList.add("no-3d")', 'new Event("studio-ready")',
                       "function start()", "function stop()", "gsap.to(S, { t: END", '["PDF", "DOCX", "TXT"]'):
             self.assertIn(parca, studio)
@@ -70,7 +77,7 @@ class ArayuzTests(unittest.TestCase):
         giris yapinca da durur. GSAP yuklenmezse dugme gizlenir ve sayfa animasyonsuz gorunur."""
         self.assertRegex(self.html, r'<button id="motion-toggle"[^>]+aria-pressed="true"[^>]+aria-label="Animasyonları kapat"')
         self.assertIn(':root[data-motion="off"] .motion-on { display: none; }', self.css)
-        home = (STATIC / "home.js").read_text(encoding="utf-8")
+        home = (STATIC / "home" / "home.js").read_text(encoding="utf-8")
         for parca in ('localStorage.getItem(KEY) === "off"', 'localStorage.setItem(KEY, root.dataset.motion)',
                       "gsap.matchMedia()", "mm.revert()", "new MutationObserver", 'attributeFilter: ["hidden"]',
                       "if (!hasGsap)", "btn.hidden = true"):
@@ -95,9 +102,9 @@ class ArayuzTests(unittest.TestCase):
     def test_statik_dosyalar_var_ve_surumlu(self):
         """Her yerel CSS/JS baglantisi var olan bir dosyaya gider ve ?v= tasir (tarayici eskisini onbellekten
         getirmesin). Yollar goreli: site Vercel'de kok dizinden sunulur."""
-        baglantilar = re.findall(r'(?:href|src)="([\w.-]+\.(?:js|css)\?v=\w+)"', self.html)
+        baglantilar = re.findall(r'(?:href|src)="([\w./-]+\.(?:js|css)\?v=\w+)"', self.html)
         adlar = {b.split("?")[0] for b in baglantilar}
-        self.assertTrue({"config.js", "app.js", "docs.js", "chat.js", "report.js", "admin.js", "account.js", "home.js", "studio.js", "style.css"} <= adlar)
+        self.assertTrue({f"{n}/{n}.js" for n in JS_ADLARI} | {"style/style.css"} <= adlar)
         for ad in adlar:
             self.assertTrue((STATIC / ad).is_file(), ad)
         self.assertNotIn('"/static/', self.html)
@@ -105,11 +112,11 @@ class ArayuzTests(unittest.TestCase):
             self.assertIn(f'id="{kimlik}"', self.html)
 
     def test_config_app_jsden_once_yuklenir(self):
-        self.assertLess(self.html.index('src="config.js'), self.html.index('src="app.js'))
+        self.assertLess(self.html.index('src="config/config.js'), self.html.index('src="app/app.js'))
 
     def test_arayuz_sunucu_metnini_innerhtml_ile_yazmaz(self):
         """XSS onlemi: sunucudan gelen metin asla HTML olarak yorumlanmaz (textContent kullanilir)."""
-        for dosya_yolu in sorted(STATIC.glob("*.js")):
+        for dosya_yolu in uygulama_js():
             kod = dosya_yolu.read_text(encoding="utf-8")
             for riskli in (".innerHTML", ".outerHTML", "insertAdjacentHTML", "document.write"):
                 self.assertNotIn(riskli, kod, f"{dosya_yolu.name}: {riskli} kullanimi XSS riski")
@@ -123,29 +130,29 @@ class ArayuzTests(unittest.TestCase):
                 self.assertNotRegex(kod, desen, dosya_yolu.name)
 
     def test_backend_adresi_config_jsden_okunur(self):
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("window.APP_CONFIG", app)
         self.assertIn("fetch(App.api + path", app)
-        config = (STATIC / "config.js").read_text(encoding="utf-8")
+        config = (STATIC / "config" / "config.js").read_text(encoding="utf-8")
         self.assertIn("http://127.0.0.1:8000", config)            # yerel backend
         self.assertRegex(config, r'"https://[\w.-]+"')            # bulut backend (https)
 
     def test_arayuzde_sabit_boyut_yazmiyor(self):
         """Yukleme siniri sunucudan okunur (yerelde 500 MB, bulutta 50 MB)."""
-        js = (STATIC / "docs.js").read_text(encoding="utf-8")
+        js = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         self.assertNotIn("10 MB", self.html)
         self.assertIn('id="upload-hint"', self.html)
         self.assertIn("/documents/limits", js)
 
     def test_bulutta_dosya_dogrudan_depoya_gider_token_gitmez(self):
         """Bulut akisi: upload-url -> Supabase'e PUT -> complete. Oturum token'i Supabase'e GONDERILMEZ."""
-        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         for parca in ('"/documents/upload-url"', 'method: "PUT"', '"/documents/complete"', "l.upload_mode"):
             self.assertIn(parca, docs)
         put = docs[docs.index("App.send(t.upload_url"):]
         put = put[:put.index(");")]
         self.assertNotIn("auth: true", put)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn('if (o.auth && App.token) xhr.setRequestHeader("Authorization"', app)
 
     def test_hesabim_sekmesi(self):
@@ -154,8 +161,8 @@ class ArayuzTests(unittest.TestCase):
         for kimlik in ("tab-account", "name-form", "acc-name", "password-form", "acc-pw-current", "acc-pw-new2",
                        "delete-account-form", "acc-del-password"):
             self.assertIn(f'id="{kimlik}"', self.html)
-        self.assertIn('src="account.js?v=', self.html)
-        js = (STATIC / "account.js").read_text(encoding="utf-8")
+        self.assertIn('src="account/account.js?v=', self.html)
+        js = (STATIC / "account" / "account.js").read_text(encoding="utf-8")
         for parca in ('"/auth/me", { method: "PATCH"', '"/auth/change-password"', '"/auth/me", { method: "DELETE"', "confirm("):
             self.assertIn(parca, js)
 
@@ -165,20 +172,20 @@ class ArayuzTests(unittest.TestCase):
         for kimlik in ("tokens-card", "token-form", "token-name", "token-days", "token-new", "token-value",
                        "btn-token-copy", "tokens-table", "tokens-empty"):
             self.assertIn(f'id="{kimlik}"', self.html)
-        js = (STATIC / "account.js").read_text(encoding="utf-8")
+        js = (STATIC / "account" / "account.js").read_text(encoding="utf-8")
         for parca in ('App.request("/auth/tokens")', '"/auth/tokens", { method: "POST"', '"/auth/tokens/" + t.id, { method: "DELETE" }',
                       "onHide: hideNewToken", "confirm("):
             self.assertIn(parca, js)
         self.assertNotIn("localStorage", js)
         self.assertNotIn("sessionStorage", js)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("App.hideTabs();", app)              # cikista
 
     def test_yonetici_api_anahtarlarini_gorur_ve_iptal_eder(self):
         """Yonetici anahtarlari listeler (yalnizca ilk 12 karakter) ve iptal eder; anahtar URETEMEZ."""
         for kimlik in ("admin-tokens", "admin-tokens-empty"):
             self.assertIn(f'id="{kimlik}"', self.html)
-        js = (STATIC / "admin.js").read_text(encoding="utf-8")
+        js = (STATIC / "admin" / "admin.js").read_text(encoding="utf-8")
         for parca in ('App.request("/admin/tokens")', '"/admin/tokens/" + t.id, { method: "DELETE" }', 't.prefix + "…"',
                       "confirm("):
             self.assertIn(parca, js)
@@ -188,9 +195,9 @@ class ArayuzTests(unittest.TestCase):
     def test_belge_suzme_siralama_ve_sohbet_adlandirma(self):
         for kimlik in ("docs-filter", "docs-sort", "docs-summary"):
             self.assertIn(f'id="{kimlik}"', self.html)
-        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         self.assertIn("const fold", docs)                             # Turkce harf duyarsiz arama
-        chat = (STATIC / "chat.js").read_text(encoding="utf-8")
+        chat = (STATIC / "chat" / "chat.js").read_text(encoding="utf-8")
         self.assertIn('method: "PATCH"', chat)
         self.assertIn('"Escape"', chat)
 
@@ -203,7 +210,7 @@ class ArayuzTests(unittest.TestCase):
         self.assertGreater(self.html.index('id="auth-form"'), dialog, "giris formu pencerenin icinde olmali")
         self.assertNotRegex(self.html, r'<dialog id="auth-dialog"[^>]*\sopen', "pencere sayfa acilirken kapali olmali")
         self.assertGreaterEqual(self.html.count("data-open-auth"), 2)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("showModal()", app)
 
     def test_sifremi_unuttum_arayuzu(self):
@@ -211,7 +218,7 @@ class ArayuzTests(unittest.TestCase):
             self.assertIn(f'id="{kimlik}"', self.html)
         self.assertIn('autocomplete="one-time-code"', self.html)
         self.assertIn('autocomplete="new-password"', self.html)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn('"/auth/forgot-password"', app)
         self.assertIn('"/auth/reset-password"', app)
 
@@ -232,7 +239,7 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn('data-auth-panel="register"', giris)      # "Hesabin yok mu? Kayit ol"
         self.assertIn('data-auth-panel="login"', kayit)         # "Zaten hesabin var mi? Giris yap"
         self.assertIn('data-open-auth="register"', self.html)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("full_name", app)
         self.assertIn("Parolalar birbirini tutmuyor", app)
 
@@ -241,7 +248,7 @@ class ArayuzTests(unittest.TestCase):
         for kimlik in ("verify-form", "verify-code", "btn-verify", "btn-resend", "verify-email-text"):
             self.assertIn(f'id="{kimlik}"', dogrulama)
         self.assertIn('autocomplete="one-time-code"', dogrulama)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn('"/auth/verify-email"', app)
         self.assertIn('"/auth/resend-verification"', app)
         self.assertIn("e.status === 403", app)                   # girişte doğrulanmamış hesap -> kod paneli
@@ -253,7 +260,7 @@ class ArayuzTests(unittest.TestCase):
     def test_buyuk_belge_parca_parca_indekslenir(self):
         """Sunucu bir istekte sure butcesi kadar indeksler; arayuz belge 'chunked' oldukca index-next'i tekrar
         cagirir, gercek yuzdeyi gosterir ve ilerleme durursa sonsuz donguye girmez."""
-        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         self.assertIn('while (d.status === "chunked")', docs)
         self.assertIn('"/index-next", { method: "POST" }', docs)
         self.assertIn("d.indexed_chunks / d.total_chunks", docs)
@@ -265,39 +272,47 @@ class ArayuzTests(unittest.TestCase):
         res.text() baytlari degistirebilir (ornegin BOM'u siler)."""
         self.assertIn('id="report-pdf"', self.html)
         self.assertNotIn("CSV indir", self.html)
-        report = (STATIC / "report.js").read_text(encoding="utf-8")
+        report = (STATIC / "report" / "report.js").read_text(encoding="utf-8")
         self.assertIn('"/reports/usage.pdf?" + params(), { blob: true }', report)
         self.assertIn('".pdf"', report)
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("if (res.ok && asBlob) return res.blob();", app)
 
     def test_genel_yanit_etiketlenir(self):
         """Belge disi (general) yanit kaynaksiz gelir ve "belgelerinden degil" notuyla, farkli gorunur."""
-        chat = (STATIC / "chat.js").read_text(encoding="utf-8")
+        chat = (STATIC / "chat" / "chat.js").read_text(encoding="utf-8")
         self.assertIn('m.status === "general"', chat)
         self.assertIn("belgelerinden değil", chat)
         self.assertIn(".bubble.general", self.css)
-        report = (STATIC / "report.js").read_text(encoding="utf-8")
+        report = (STATIC / "report" / "report.js").read_text(encoding="utf-8")
         self.assertIn('general: "Genel yanıt (belge dışı)"', report)
 
     def test_belge_yeniden_indekslenebilir(self):
         """Embedding modeli degisince eski belgeler aranamaz; her hazir belgede "Yeniden indeksle" olmali."""
-        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         self.assertIn("if (d.chunk_count > 0)", docs)
         self.assertIn('"/reindex", { method: "POST" }', docs)
         self.assertIn("App.setBusy(btn, true)", docs)
 
     def test_yukle_dugmesi_dosya_secilene_kadar_pasif(self):
         self.assertRegex(self.html, r'<button type="submit" id="upload-btn"[^>]*\sdisabled')
-        docs = (STATIC / "docs.js").read_text(encoding="utf-8")
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
         self.assertIn("btn.disabled = !f || tooBig", docs)
         self.assertIn("#upload-btn.ready", self.css)            # dosya secilince vurgulanir
 
     def test_yukleme_gercek_ilerleme_gosterir(self):
-        app = (STATIC / "app.js").read_text(encoding="utf-8")
+        app = (STATIC / "app" / "app.js").read_text(encoding="utf-8")
         self.assertIn("xhr.upload.onprogress", app)
         self.assertIn('role="progressbar"', self.html)
         self.assertIn('aria-valuemax="100"', self.html)
+
+    def test_her_dosya_kendi_klasorunde(self):
+        """public/ kokunde yalnizca index.html durur; her JS/CSS dosyasi kendi adini tasiyan klasorde."""
+        kok = sorted(p.name for p in STATIC.iterdir() if p.is_file())
+        self.assertEqual(kok, ["index.html"])
+        for ad in JS_ADLARI:
+            self.assertTrue((STATIC / ad / f"{ad}.js").is_file(), ad)
+        self.assertTrue((STATIC / "style" / "style.css").is_file())
 
     def test_sekmeler_erisilebilir(self):
         """Her sekme dugmesi kendi panelini gosterir (aria-controls), panel de dugmeye baglidir (aria-labelledby)."""
