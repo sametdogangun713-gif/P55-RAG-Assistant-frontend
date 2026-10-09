@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-  <link rel="stylesheet" href="style/style.css?v=41">
+  <link rel="stylesheet" href="style/style.css?v=42">
   <!-- Tema, sayfa cizilmeden once uygulanir (acik/koyu arasinda yanip sonme olmasin). Secim yoksa isletim sistemi ayari. -->
   <script>try { const t = localStorage.getItem("asistan_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
@@ -132,7 +132,7 @@
             <div><dt>Kaynak kod</dt><dd><a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-backend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-backend</a>, <a href="https://github.com/sametdogangun713-gif/P55-RAG-Assistant-frontend" target="_blank" rel="noopener noreferrer">P55-RAG-Assistant-frontend</a></dd></div>
           </dl>
         </div>
-        <p class="ai-note">Geliştirmede yapay zekâ “eş programcı” olarak kullanıldı; kullanım günlüğü backend deposunda <code>docs/ai-kullanim-gunlugu.md</code> dosyasındadır.</p>
+        <p class="ai-note">Geliştirmede yapay zekâ “eş programcı” olarak kullanıldı; kullanım günlüğü backend deposunda <code>docs/ai-kullanim-gunlugu/ai-kullanim-gunlugu.md</code> dosyasındadır.</p>
       </section>
 
       <section class="home-cta" aria-labelledby="cta-title">
@@ -178,6 +178,22 @@
             <div class="progress" id="upload-progress" hidden role="progressbar" aria-label="Yükleme ilerlemesi" aria-valuemin="0" aria-valuemax="100"><span></span></div>
             <span class="progress-text" id="upload-status" aria-live="polite"></span>
           </div>
+        </form>
+        <!-- 3. parti kaynak: Vikipedi makalesi aranir, secilen makale backend'de .txt belgesi olarak eklenir -->
+        <form id="wiki-form" class="wiki-form" aria-labelledby="wiki-title">
+          <h2 id="wiki-title" class="spaced">Vikipedi'den ekle</h2>
+          <p class="wiki-note">Makaleyi ara, tek tıkla belge olarak ekle. Metin CC BY-SA lisanslıdır; kaynak adresi belgenin başına yazılır.</p>
+          <div class="wiki-row">
+            <label for="wiki-query" class="visually-hidden">Vikipedi'de ara</label>
+            <input id="wiki-query" type="search" placeholder="Örn: fotosentez" maxlength="200" required autocomplete="off">
+            <label for="wiki-lang" class="visually-hidden">Dil</label>
+            <select id="wiki-lang">
+              <option value="tr">Türkçe</option>
+              <option value="en">English</option>
+            </select>
+            <button type="submit" id="wiki-btn">Ara</button>
+          </div>
+          <ul id="wiki-results" class="wiki-results" aria-live="polite"></ul>
         </form>
         <h2 class="spaced">Belgelerim</h2>
         <!-- Suzme ve siralama tarayicida yapilir (liste zaten tamamen elimizde; sunucuya yeni istek gitmez) -->
@@ -469,7 +485,8 @@
 
   <script src="config/config.js?v=39"></script>
   <script src="app/app.js?v=39"></script>
-  <script src="docs/docs.js?v=39"></script>
+  <script src="docs/docs.js?v=42"></script>
+  <script src="wiki/wiki.js?v=42"></script>
   <script src="chat/chat.js?v=39"></script>
   <script src="report/report.js?v=39"></script>
   <script src="admin/admin.js?v=39"></script>

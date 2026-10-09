@@ -267,6 +267,7 @@
   }
 
   App.tabs.docs = { onShow: loadDocs };
+  App.docs = { reload: loadDocs, finishIndexing };        // wiki.js (Vikipedi'den ekle) de kullanir
   App.tabs.search = {};
   bindUpload();
   bindSearch();

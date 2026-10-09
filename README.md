@@ -17,6 +17,7 @@ public/index.html              tek sayfa: ana sayfa + giriş penceresi + sekmele
 public/config/config.js        backend (API) adresi  <- buluta çıkarken değiştirilen tek dosya
 public/app/app.js              çekirdek: API istemcisi, oturum, sekmeler, tema, bildirimler
 public/docs/docs.js            belgeler (yükleme: yerelde doğrudan, bulutta Supabase Storage'a) ve arama
+public/wiki/wiki.js            "Vikipedi'den ekle": 3. parti API'den makale arama ve belge olarak ekleme (backend üzerinden)
 public/chat/chat.js            sohbet
 public/report/report.js        kullanım raporu ve PDF indirme
 public/admin/admin.js          yönetim (yalnızca yönetici)

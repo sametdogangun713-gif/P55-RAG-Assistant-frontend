@@ -563,3 +563,18 @@ td button { padding: .35rem .7rem; font-size: .8rem; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .progress.indeterminate span { width: 100%; opacity: .5; }
 }
+
+/* ---------- Belgelerim: Vikipedi'den ekle (3. parti kaynak) ---------- */
+.wiki-note { margin: -.4rem 0 .8rem; color: var(--muted); font-size: .87rem; }
+.wiki-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
+.wiki-row input, .wiki-row select { margin: 0; }
+.wiki-results { list-style: none; margin: .8rem 0 0; padding: 0; }
+.wiki-results:empty { display: none; }
+.wiki-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: .8rem 1rem; border: 1px solid var(--border); border-left: 3px solid var(--ink); background: var(--surface); margin-bottom: .5rem; }
+.wiki-item p { margin: .25rem 0 0; color: var(--muted); font-size: .87rem; }
+.wiki-item button { flex: none; padding: .35rem .7rem; font-size: .8rem; }
+@media (max-width: 600px) {
+  .wiki-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .wiki-row button { grid-column: 1 / -1; }
+  .wiki-item { flex-direction: column; }
+}

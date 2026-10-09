@@ -8,7 +8,7 @@ from pathlib import Path
 
 STATIC = Path(__file__).resolve().parent.parent / "public"
 # Her dosya kendi klasorunde: public/docs/docs.js, public/style/style.css (vendor/ disaridan gelen kutuphaneler)
-JS_ADLARI = ("config", "app", "docs", "chat", "report", "admin", "account", "home", "studio")
+JS_ADLARI = ("config", "app", "docs", "wiki", "chat", "report", "admin", "account", "home", "studio")
 
 
 def uygulama_js():
@@ -313,6 +313,21 @@ class ArayuzTests(unittest.TestCase):
         for ad in JS_ADLARI:
             self.assertTrue((STATIC / ad / f"{ad}.js").is_file(), ad)
         self.assertTrue((STATIC / "style" / "style.css").is_file())
+
+    def test_vikipediden_ekle(self):
+        """3. parti kaynak: arama ve ekleme backend uzerinden (tarayici Vikipedi'ye dogrudan gitmez);
+        sonuclar textContent ile yazilir, eklenen belge buyukse parca parca indekslenir."""
+        for kimlik in ("wiki-form", "wiki-query", "wiki-lang", "wiki-btn", "wiki-results"):
+            self.assertIn(f'id="{kimlik}"', self.html)
+        self.assertIn('<option value="tr">', self.html)
+        self.assertLess(self.html.index('src="docs/docs.js'), self.html.index('src="wiki/wiki.js'))
+        wiki = (STATIC / "wiki" / "wiki.js").read_text(encoding="utf-8")
+        for parca in ('"/wikipedia/search?"', '"/wikipedia/import"', "App.docs.finishIndexing(d)", "App.docs.reload()"):
+            self.assertIn(parca, wiki)
+        self.assertNotIn("wikipedia.org", wiki)
+        docs = (STATIC / "docs" / "docs.js").read_text(encoding="utf-8")
+        self.assertIn("App.docs = { reload: loadDocs, finishIndexing }", docs)
+        self.assertIn("CC BY-SA", self.html)                     # lisans kullaniciya soyleniyor
 
     def test_sekmeler_erisilebilir(self):
         """Her sekme dugmesi kendi panelini gosterir (aria-controls), panel de dugmeye baglidir (aria-labelledby)."""
