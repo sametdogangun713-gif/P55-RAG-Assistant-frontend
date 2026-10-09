@@ -90,6 +90,7 @@ class ArayuzTests(unittest.TestCase):
         self.assertIn(".studio:not(.is-live) .scene { position: static; }", self.css)
         self.assertIn("figcaption", self.html)                  # canli ornegin ekran okuyucu aciklamasi
         self.assertIn('<section id="nasil" class="studio" aria-label="Nasıl çalışır">', self.html)
+        self.assertNotIn('href="#nasil"', self.html)                 # menude yok: bolum artik adimlari anlatmiyor
 
     def test_statik_dosyalar_var_ve_surumlu(self):
         """Her yerel CSS/JS baglantisi var olan bir dosyaya gider ve ?v= tasir (tarayici eskisini onbellekten
